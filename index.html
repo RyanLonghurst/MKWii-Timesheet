@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0c0d11" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>200cc Timesheet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/* Layout: one narrow white column, lots of air, tiny mono labels, square edges throughout.
+   Each track is a ruled block: name left, your time right, four reference times beneath. */
+:root{
+  --paper:#ffffff; --ink:#0d0f14; --soft:#6b7080; --rule:#dfe1e7; --wash:#f3f4f7;
+  --mark:#1b3bff; --mark-ink:#ffffff; --slow:#b3261e;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --mono:"Martian Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --paper:#0c0d11; --ink:#f1f2f5; --soft:#8c91a1; --rule:#272a33; --wash:#15171d; --mark:#7d92ff; --mark-ink:#0c0d11; --slow:#ff8a80; color-scheme:dark }
+}
+:root[data-theme="dark"]{ --paper:#0c0d11; --ink:#f1f2f5; --soft:#8c91a1; --rule:#272a33; --wash:#15171d; --mark:#7d92ff; --mark-ink:#0c0d11; --slow:#ff8a80; color-scheme:dark }
+
+*{box-sizing:border-box;border-radius:0}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+body{background:var(--paper);color:var(--ink);font-family:var(--display);font-size:16px;line-height:1.35;padding-inline:20px;padding-block:28px 96px}
+.wrap{max-width:560px;margin-inline:auto;display:flex;flex-direction:column;gap:36px}
+.lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+header{display:flex;flex-direction:column;gap:18px}
+h1{font-size:44px;line-height:.95;font-weight:600;letter-spacing:-.035em;margin:0;text-wrap:balance}
+h1 span{color:var(--mark)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px}
+
+.tally{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.tally div{padding:12px 0;display:flex;flex-direction:column;gap:6px}
+.tally div+div{padding-left:14px;border-left:1px solid var(--rule)}
+.tally b{font-family:var(--mono);font-weight:400;font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+
+nav{display:flex;gap:22px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);padding-block:12px;z-index:5;border-bottom:1px solid var(--rule)}
+nav button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:4px 0;color:var(--soft);cursor:pointer;border-bottom:2px solid transparent}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--mark)}
+nav .save{margin-left:auto;align-self:center}
+button:focus-visible,input:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+
+.cup{display:flex;flex-direction:column}
+.cup>.lab{padding-bottom:8px;border-bottom:1px solid var(--ink)}
+.trk{padding:16px 0 18px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+.name{min-width:0;display:flex;flex-direction:column;gap:7px}
+.name h3{margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.cats{display:flex;gap:12px}
+.cats button{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:2px 0;color:var(--soft);cursor:pointer;border-bottom:1px solid transparent}
+.cats button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.mine{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.mine input{width:122px;font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:-.03em;text-align:right;color:var(--ink);background:var(--wash);border:0;border-bottom:1px solid var(--ink);padding:8px 8px 7px}
+.mine input::placeholder{color:var(--soft);opacity:.6}
+.mine input.bad{border-bottom-color:var(--slow);color:var(--slow)}
+.refs{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.refs div{display:flex;flex-direction:column;gap:5px;padding-right:6px}
+.refs .num{font-size:12px}
+.refs .gap{font-family:var(--mono);font-size:9.5px;color:var(--soft);font-variant-numeric:tabular-nums}
+.refs .beat .num{color:var(--mark)}
+.refs .beat .gap{color:var(--mark)}
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:18px}
+.tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;background:var(--mark);color:var(--mark-ink)}
+.tag.none{background:none;color:var(--soft);border:1px solid var(--rule)}
+
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--ink)}
+table{border-collapse:collapse;font-family:var(--mono);font-size:10.5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--rule);font-weight:400}
+thead th{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+tbody th{position:sticky;left:0;background:var(--paper);font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:-.01em;padding-right:14px;max-width:132px;white-space:normal;line-height:1.15}
+tbody th small{display:block;font-family:var(--mono);font-weight:400;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin-top:3px}
+td.hit{color:var(--mark)}
+td.best{background:var(--mark);color:var(--mark-ink)}
+th:first-child{padding-left:0}
+.key{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
+.key dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
+.key dd{margin:0;font-family:var(--mono);font-size:10.5px;color:var(--soft)}
+p.note{margin:0;font-size:14px;color:var(--soft);max-width:60ch}
+section{display:flex;flex-direction:column;gap:28px}
+footer{border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+a{color:inherit}
+@media (max-width:360px){ h1{font-size:38px} .mine input{width:108px} }
+@media (prefers-reduced-motion:no-preference){ nav button,.cats button{transition:color .12s} }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="lab">Mario Kart Wii · CTGP · original 32</div>
+    <h1>200cc<br>Time<span>sheet</span></h1>
+    <div class="meta">
+      <span class="lab" id="snap"></span>
+      <span class="lab">Source: Chadsoft ghost database</span>
+    </div>
+    <div class="tally">
+      <div><span class="lab">Timed</span><b id="tTimed">0/32</b></div>
+      <div><span class="lab">Avg off WR</span><b id="tAvg">–</b></div>
+      <div><span class="lab">Sheet total</span><b id="tSum">–</b></div>
+    </div>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" id="tabTimes" aria-selected="true" aria-controls="vTimes">Times</button>
+    <button role="tab" id="tabStd" aria-selected="false" aria-controls="vStd">Standards</button>
+    <span class="lab save" id="save" aria-live="polite"></span>
+  </nav>
+
+  <section id="vTimes" role="tabpanel" aria-labelledby="tabTimes"></section>
+
+  <section id="vStd" role="tabpanel" aria-labelledby="tabStd" hidden>
+    <p class="note">Target time for each standard on every track. A standard is the world record plus a fixed percentage, so the bar is equally hard everywhere. Cells turn blue once your time beats them.</p>
+    <dl class="key" id="key"></dl>
+    <div class="scroll"><table id="stdTable"></table></div>
+    <p class="note">These standards are made for this sheet. No official 200cc standards exist. The percentages follow the real leaderboards. On a typical track Myth is about 10th place pace, Hero about 50th, Expert about 100th and Intermediate about 500th.</p>
+  </section>
+
+  <footer>
+    <span class="lab">Type a time as digits: 112848 becomes 1:12.848</span>
+    <span class="lab">10th, 50th and 100th count each player once, by their best ghost</span>
+    <span class="lab">Normal allows shortcuts · glitch runs are left out</span>
+  </footer>
+</div>
+
+<script>
+const DATA={"date":"10 Oct 2026","standards":[{"name":"God","pct":1},{"name":"Myth","pct":2.5},{"name":"Titan","pct":4.5},{"name":"Hero","pct":7},{"name":"Expert","pct":10},{"name":"Advanced","pct":15},{"name":"Intermediate","pct":22},{"name":"Beginner","pct":30}],"boards":[{"name":"Luigi Circuit","slot":8,"cat":4,"players":23192,"t":{"1":"0:46.259","10":"0:46.606","50":"0:46.958","100":"0:47.254"},"by":"Besart F.","on":"2023-05-17"},{"name":"Moo Moo Meadows","slot":1,"cat":4,"players":7628,"t":{"1":"0:50.980","10":"0:51.813","50":"0:52.938","100":"0:53.452"},"by":"woah","on":"2024-11-04"},{"name":"Mushroom Gorge","slot":2,"cat":4,"players":669,"t":{"1":"1:14.919","10":"1:19.317","50":"1:22.584","100":"1:25.022"},"by":"sy Elec","on":"2024-05-03"},{"name":"Mushroom Gorge","slot":2,"cat":6,"players":10397,"t":{"1":"1:12.848","10":"1:13.895","50":"1:16.096","100":"1:17.259"},"by":"woah","on":"2024-02-16"},{"name":"Toad's Factory","slot":4,"cat":4,"players":199,"t":{"1":"1:15.028","10":"1:24.079","50":"1:30.306","100":"1:37.425"},"by":"Arthur","on":"2024-03-01"},{"name":"Toad's Factory","slot":4,"cat":6,"players":8524,"t":{"1":"1:15.871","10":"1:17.133","50":"1:20.140","100":"1:21.421"},"by":"Schmancy","on":"2024-05-11"},{"name":"Mario Circuit","slot":0,"cat":4,"players":6971,"t":{"1":"0:53.672","10":"0:54.162","50":"0:54.795","100":"0:55.316"},"by":"Schmancy","on":"2024-05-10"},{"name":"Coconut Mall","slot":5,"cat":4,"players":2762,"t":{"1":"1:03.849","10":"1:07.068","50":"1:09.450","100":"1:10.860"},"by":"Ω Indy","on":"2024-11-04"},{"name":"Coconut Mall","slot":5,"cat":6,"players":6892,"t":{"1":"1:14.621","10":"1:21.111","50":"1:25.745","100":"1:27.591"},"by":"Dυçκ E","on":"2020-01-02"},{"name":"DK Summit","slot":6,"cat":4,"players":7895,"t":{"1":"1:11.436","10":"1:17.159","50":"1:22.416","100":"1:26.254"},"by":"XXXX EEEEE","on":"2025-06-05"},{"name":"Wario's Gold Mine","slot":7,"cat":4,"players":1821,"t":{"1":"1:14.553","10":"1:16.709","50":"1:20.405","100":"1:22.612"},"by":"Schmancy","on":"2023-01-22"},{"name":"Daisy Circuit","slot":9,"cat":4,"players":4093,"t":{"1":"1:01.574","10":"1:02.595","50":"1:04.598","100":"1:05.896"},"by":"woah","on":"2025-01-22"},{"name":"Koopa Cape","slot":15,"cat":4,"players":3201,"t":{"1":"1:36.878","10":"1:39.861","50":"1:45.782","100":"1:48.668"},"by":"CobyAltWii","on":"2025-01-21"},{"name":"Maple Treeway","slot":11,"cat":4,"players":2236,"t":{"1":"1:39.932","10":"1:42.959","50":"1:46.792","100":"1:49.600"},"by":"MrWaffle","on":"2024-01-19"},{"name":"Grumble Volcano","slot":3,"cat":4,"players":1397,"t":{"1":"1:10.679","10":"1:15.139","50":"1:16.615","100":"1:17.809"},"by":"Mystogan","on":"2026-07-18"},{"name":"Grumble Volcano","slot":3,"cat":6,"players":1509,"t":{"1":"1:16.667","10":"1:19.593","50":"1:22.282","100":"1:25.028"},"by":"Mystogan","on":"2026-07-13"},{"name":"Dry Dry Ruins","slot":14,"cat":4,"players":3295,"t":{"1":"1:15.242","10":"1:17.871","50":"1:22.167","100":"1:24.082"},"by":"MrWaffle","on":"2023-07-23"},{"name":"Moonview Highway","slot":10,"cat":4,"players":1943,"t":{"1":"1:09.117","10":"1:10.328","50":"1:12.817","100":"1:14.244"},"by":"woah","on":"2024-11-30"},{"name":"Bowser's Castle","slot":12,"cat":4,"players":471,"t":{"1":"1:30.380","10":"1:42.444","50":"1:59.629","100":"2:10.503"},"by":"αdcGD@sinθ","on":"2025-02-07"},{"name":"Bowser's Castle","slot":12,"cat":6,"players":1785,"t":{"1":"1:39.260","10":"1:42.132","50":"1:49.263","100":"1:55.207"},"by":"woah","on":"2026-09-20"},{"name":"Rainbow Road","slot":13,"cat":4,"players":3482,"t":{"1":"1:44.198","10":"1:47.043","50":"1:53.945","100":"1:57.823"},"by":"Flαg N","on":"2025-09-14"},{"name":"GCN Peach Beach","slot":16,"cat":4,"players":4162,"t":{"1":"0:48.436","10":"0:49.146","50":"0:49.718","100":"0:50.107"},"by":"Kasey","on":"2022-02-13"},{"name":"DS Yoshi Falls","slot":20,"cat":4,"players":6372,"t":{"1":"0:38.932","10":"0:39.295","50":"0:39.969","100":"0:40.469"},"by":"HιahowαreU","on":"2023-02-09"},{"name":"SNES Ghost Valley 2","slot":25,"cat":4,"players":4737,"t":{"1":"0:35.722"}},{"name":"N64 Mario Raceway","slot":26,"cat":4,"players":6119,"t":{"1":"1:08.803"}},{"name":"N64 Sherbet Land","slot":27,"cat":4,"players":1420,"t":{"1":"1:25.165","10":"1:27.347","50":"1:31.699","100":"1:35.881"},"by":"Schmancy","on":"2023-04-21"},{"name":"GBA Shy Guy Beach","slot":31,"cat":4,"players":2741,"t":{"1":"0:54.068","10":"0:55.026","50":"0:55.832","100":"0:56.260"},"by":"Schmancy","on":"2024-02-19"},{"name":"DS Delfino Square","slot":23,"cat":4,"players":3599,"t":{"1":"1:22.434","10":"1:24.010","50":"1:27.729","100":"1:31.650"},"by":"HιahowαreU","on":"2023-02-02"},{"name":"GCN Waluigi Stadium","slot":18,"cat":4,"players":3288,"t":{"1":"1:18.754","10":"1:22.731","50":"1:28.686","100":"1:31.157"},"by":"woah","on":"2024-12-01"},{"name":"DS Desert Hills","slot":21,"cat":4,"players":122,"t":{"1":"1:08.001","10":"1:12.332","50":"1:27.531","100":"1:44.806"},"by":"τας◎SñοοΡ™","on":"2019-05-05"},{"name":"DS Desert Hills","slot":21,"cat":6,"players":2579,"t":{"1":"1:03.698","10":"1:04.795","50":"1:06.373","100":"1:07.757"},"by":"ElecTrick","on":"2026-04-07"},{"name":"GBA Bowser Castle 3","slot":30,"cat":4,"players":1253,"t":{"1":"1:20.850","10":"1:27.224","50":"1:34.375","100":"1:38.647"},"by":"woah","on":"2026-03-30"},{"name":"GBA Bowser Castle 3","slot":30,"cat":6,"players":2016,"t":{"1":"1:32.250","10":"1:34.536","50":"1:37.286","100":"1:40.483"},"by":"woah","on":"2024-10-27"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":4,"players":238,"t":{"1":"1:36.543","10":"1:42.043","50":"1:58.861","100":"2:12.832"},"by":"Flαg A","on":"2023-12-31"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":6,"players":1264,"t":{"1":"1:38.787","10":"1:41.255","50":"1:46.033","100":"1:49.205"},"by":"woah","on":"2025-01-24"},{"name":"GCN Mario Circuit","slot":17,"cat":6,"players":1841,"t":{"1":"1:04.460","10":"1:06.722","50":"1:10.630","100":"1:13.505"},"by":"woah","on":"2024-11-30"},{"name":"SNES Mario Circuit 3","slot":24,"cat":4,"players":3546,"t":{"1":"0:54.327","10":"0:54.981","50":"0:55.885","100":"0:56.299"},"by":"woah","on":"2024-11-16"},{"name":"DS Peach Gardens","slot":22,"cat":4,"players":1529,"t":{"1":"1:21.627","10":"1:23.318","50":"1:25.950","100":"1:28.446"},"by":"Schmancy","on":"2023-03-25"},{"name":"GCN DK Mountain","slot":19,"cat":4,"players":120,"t":{"1":"1:36.584","10":"1:46.738","50":"2:28.290","100":"4:19.746"},"by":"Mγsτοgαη","on":"2024-01-24"},{"name":"GCN DK Mountain","slot":19,"cat":6,"players":2285,"t":{"1":"1:37.859","10":"1:42.738","50":"1:47.113","100":"1:50.666"},"by":"woah","on":"2026-05-07"},{"name":"N64 Bowser's Castle","slot":28,"cat":4,"players":17,"t":{"1":"1:51.314","10":"1:58.959"},"by":"Sergio","on":"2022-12-29"},{"name":"N64 Bowser's Castle","slot":28,"cat":6,"players":3190,"t":{"1":"1:44.959","10":"1:46.639","50":"1:48.913","100":"1:50.274"},"by":"woah","on":"2024-12-12"}]};
+const CUPS=["Mushroom","Flower","Star","Special","Shell","Banana","Leaf","Lightning"];
+const CATNAME={4:"Normal",6:"No-shortcut"};
+const $=id=>document.getElementById(id);
+
+// stop pinch and double-tap zoom on phones
+(function(){const m=document.querySelector('meta[name=viewport]');if(m)m.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+  ['gesturestart','gesturechange'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault(),{passive:false}));})();
+
+const ms=s=>{ if(!s) return null; const m=/^(\d+):(\d\d)\.(\d{3})$/.exec(s); return m? (+m[1])*60000+(+m[2])*1000+(+m[3]) : null; };
+const fmt=v=>{ if(v==null) return "–"; v=Math.round(v); const m=Math.floor(v/60000), s=Math.floor(v%60000/1000), x=v%1000; return m+":"+String(s).padStart(2,"0")+"."+String(x).padStart(3,"0"); };
+const gapf=d=>(d<0?"−":"+")+(Math.abs(d)/1000).toFixed(3);
+function parseTime(raw){
+  raw=(raw||"").trim(); if(!raw) return null;
+  let m;
+  if((m=/^(\d+):(\d{1,2})[.,](\d{1,3})$/.exec(raw))) return (+m[1])*60000+(+m[2])*1000+ +(m[3].padEnd(3,"0"));
+  if((m=/^(\d{1,2})[.,](\d{1,3})$/.exec(raw))) return (+m[1])*1000+ +(m[2].padEnd(3,"0"));
+  if(/^\d{4,6}$/.test(raw)){ const x=+raw.slice(-3), s=+raw.slice(-5,-3), mm=+(raw.slice(0,-5)||0); if(s<60) return mm*60000+s*1000+x; }
+  return NaN;
+}
+
+// tracks: one entry per slot, with its non-glitch categories
+const TRACKS=[]; (function(){ const by={}; DATA.boards.forEach(b=>{ const k=b.slot; if(!by[k]){ by[k]={slot:b.slot,name:b.name,cats:[]}; TRACKS.push(by[k]); } by[k].cats.push(b); });
+  TRACKS.forEach(t=>{ t.def=t.cats.slice().sort((a,b)=>b.players-a.players)[0].cat; }); })();
+
+let state={times:{},cat:{},at:0};
+const LS="tt200-v1";
+try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s&&s.times) state=s; }catch(e){}
+const catOf=t=>{ const c=state.cat[t.slot]; return t.cats.find(b=>String(b.cat)===String(c))||t.cats.find(b=>b.cat===t.def); };
+const key=(t,b)=>t.slot+"_"+b.cat;
+
+function standardFor(b,mine){ const wr=ms(b.t[1]); if(mine==null||wr==null) return null; for(const s of DATA.standards){ if(mine<=wr*(1+s.pct/100)) return s; } return null; }
+function bracket(b,mine){ const r=[[1,"World record pace"],[10,"Inside the top 10"],[50,"Inside the top 50"],[100,"Inside the top 100"]];
+  for(const [k,txt] of r){ const v=ms(b.t[k]); if(v!=null&&mine<=v) return txt; } return ms(b.t[100])!=null?"Outside the top 100":""; }
+
+function renderTimes(){
+  const root=$("vTimes"); root.textContent="";
+  CUPS.forEach((cup,ci)=>{
+    const sec=document.createElement("div"); sec.className="cup";
+    const l=document.createElement("div"); l.className="lab"; l.textContent=cup+" Cup"; sec.appendChild(l);
+    TRACKS.slice(ci*4,ci*4+4).forEach(t=>sec.appendChild(trackEl(t)));
+    root.appendChild(sec);
+  });
+}
+function trackEl(t){
+  const el=document.createElement("div"); el.className="trk"; el.dataset.slot=t.slot;
+  const b=catOf(t), mine=state.times[key(t,b)];
+  const top=document.createElement("div"); top.className="top";
+  const nm=document.createElement("div"); nm.className="name";
+  const h=document.createElement("h3"); h.textContent=t.name; nm.appendChild(h);
+  if(t.cats.length>1){ const cs=document.createElement("div"); cs.className="cats";
+    t.cats.forEach(c=>{ const bt=document.createElement("button"); bt.type="button"; bt.textContent=CATNAME[c.cat]||"Normal"; bt.setAttribute("aria-pressed",String(c===b));
+      bt.onclick=()=>{ state.cat[t.slot]=c.cat; persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); }; cs.appendChild(bt); });
+    nm.appendChild(cs); }
+  top.appendChild(nm);
+  const me=document.createElement("div"); me.className="mine";
+  const lb=document.createElement("label"); lb.className="lab"; lb.textContent="Your time"; lb.htmlFor="in"+t.slot;
+  const inp=document.createElement("input"); inp.id="in"+t.slot; inp.type="text"; inp.inputMode="numeric"; inp.autocomplete="off"; inp.placeholder="0:00.000"; inp.value=mine!=null?fmt(mine):"";
+  inp.onfocus=()=>inp.select();
+  inp.onchange=()=>{ const v=parseTime(inp.value); if(Number.isNaN(v)){ inp.classList.add("bad"); return; } inp.classList.remove("bad");
+    if(v==null) delete state.times[key(t,b)]; else state.times[key(t,b)]=v; persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); };
+  inp.onkeydown=e=>{ if(e.key==="Enter") inp.blur(); };
+  me.appendChild(lb); me.appendChild(inp); top.appendChild(me); el.appendChild(top);
+
+  const refs=document.createElement("div"); refs.className="refs";
+  [[1,"WR"],[10,"10th"],[50,"50th"],[100,"100th"]].forEach(([k,lbl])=>{
+    const d=document.createElement("div"); const v=ms(b.t[k]);
+    const a=document.createElement("span"); a.className="lab"; a.textContent=lbl;
+    const n=document.createElement("span"); n.className="num"; n.textContent=fmt(v);
+    d.appendChild(a); d.appendChild(n);
+    if(mine!=null&&v!=null){ const g=document.createElement("span"); g.className="gap"; g.textContent=gapf(mine-v); d.appendChild(g); if(mine<=v) d.className="beat"; }
+    refs.appendChild(d); });
+  el.appendChild(refs);
+
+  if(mine!=null){ const vd=document.createElement("div"); vd.className="verdict";
+    const s=standardFor(b,mine); const tg=document.createElement("span"); tg.className="tag"+(s?"":" none"); tg.textContent=s?s.name:"No standard yet"; vd.appendChild(tg);
+    const wr=ms(b.t[1]); const info=document.createElement("span"); info.className="lab";
+    const pct=((mine/wr-1)*100); const br=bracket(b,mine);
+    info.textContent=(pct>=0?"+":"−")+Math.abs(pct).toFixed(2)+"% off WR"+(br?" · "+br:""); vd.appendChild(info);
+    const nxt=nextUp(b,mine,s); if(nxt){ const n2=document.createElement("span"); n2.className="lab"; n2.textContent=nxt; vd.appendChild(n2); }
+    el.appendChild(vd); }
+  return el;
+}
+function nextUp(b,mine,s){ const wr=ms(b.t[1]); const i=s?DATA.standards.indexOf(s):DATA.standards.length; if(i<=0) return ""; const up=DATA.standards[i-1]; const target=Math.floor(wr*(1+up.pct/100)); return up.name+" needs "+fmt(target)+" ("+gapf(target-mine)+")"; }
+
+function renderStd(){
+  const k=$("key"); k.textContent=""; DATA.standards.forEach(s=>{ const dt=document.createElement("dt"); dt.textContent=s.name; const dd=document.createElement("dd"); dd.textContent="WR + "+s.pct+"%"; k.appendChild(dt); k.appendChild(dd); });
+  const tb=$("stdTable"); tb.textContent="";
+  const hd=tb.createTHead().insertRow(); const c0=document.createElement("th"); c0.textContent="Track"; hd.appendChild(c0);
+  ["Yours","WR"].concat(DATA.standards.map(s=>s.name)).forEach(n=>{ const th=document.createElement("th"); th.textContent=n; hd.appendChild(th); });
+  const body=tb.createTBody();
+  TRACKS.forEach(t=>{ const b=catOf(t), mine=state.times[key(t,b)], wr=ms(b.t[1]); const r=body.insertRow();
+    const th=document.createElement("th"); th.scope="row"; th.textContent=t.name; if(t.cats.length>1){ const sm=document.createElement("small"); sm.textContent=CATNAME[b.cat]||"Normal"; th.appendChild(sm);} r.appendChild(th);
+    const y=r.insertCell(); y.textContent=mine!=null?fmt(mine):"–";
+    const w=r.insertCell(); w.textContent=fmt(wr); if(mine!=null&&mine<=wr) w.className="hit";
+    const got=standardFor(b,mine);
+    DATA.standards.forEach(s=>{ const c=r.insertCell(); const v=Math.floor(wr*(1+s.pct/100)); c.textContent=fmt(v); if(mine!=null&&mine<=v) c.className=(s===got)?"best":"hit"; });
+  });
+}
+function tally(){
+  let n=0,sum=0,pc=0;
+  TRACKS.forEach(t=>{ const b=catOf(t), m=state.times[key(t,b)]; if(m!=null){ n++; sum+=m; pc+=(m/ms(b.t[1])-1)*100; } });
+  $("tTimed").textContent=n+"/"+TRACKS.length; $("tAvg").textContent=n?"+"+(pc/n).toFixed(2)+"%":"–";
+  $("tSum").textContent=n===TRACKS.length?fmt(sum):(n?fmt(sum)+"*":"–");
+}
+
+// saving: this device straight away, your account when available
+let dbDoc=null, timer=null;
+function note(t){ $("save").textContent=t; }
+function persist(){ state.at=Date.now(); try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){}
+  if(!dbDoc){ note("Saved on this device"); return; }
+  note("Saving"); clearTimeout(timer); timer=setTimeout(()=>{ dbDoc.set({times:state.times,cat:state.cat,at:state.at}).then(()=>note("Saved"),()=>note("Saved on this device")); },700); }
+async function connect(){
+  try{ if(!window.claude||!window.claude.use) return; const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]); if(!db||!user) return;
+    const id=await user.id(); if(!id) return; const ref=db.collection("data/users/"+id).doc("sheet"); const snap=await ref.get(); dbDoc=ref;
+    if(snap.exists){ const d=snap.data(); if(d&&d.times&&(d.at||0)>=(state.at||0)){ state={times:Object.assign({},d.times),cat:Object.assign({},d.cat||{}),at:d.at||0}; try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} renderTimes(); renderStd(); tally(); } else if(Object.keys(state.times).length){ persist(); } }
+    else if(Object.keys(state.times).length){ persist(); }
+    note(Object.keys(state.times).length?"Saved":"");
+  }catch(e){}
+}
+
+function show(which){ const t=which==="std"; $("vTimes").hidden=t; $("vStd").hidden=!t; $("tabTimes").setAttribute("aria-selected",String(!t)); $("tabStd").setAttribute("aria-selected",String(t)); }
+$("tabTimes").onclick=()=>show("times"); $("tabStd").onclick=()=>show("std");
+$("snap").textContent="Records as of "+DATA.date;
+renderTimes(); renderStd(); tally(); connect();
+</script>
+</body>
+</html>
