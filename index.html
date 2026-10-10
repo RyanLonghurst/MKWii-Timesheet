@@ -6,6 +6,13 @@
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0c0d11" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="200cc">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <title>200cc Timesheet</title>
@@ -85,6 +92,14 @@ th:first-child{padding-left:0}
 .key{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
 .key dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
 .key dd{margin:0;font-family:var(--mono);font-size:10.5px;color:var(--soft)}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.txt{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:2px 0;color:var(--soft);cursor:pointer;border-bottom:1px solid transparent}
+.txt[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.txt.act{color:var(--ink);border-bottom-color:var(--ink)}
+.hist{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--soft);font-variant-numeric:tabular-nums}
+.hist b{font-weight:400;color:var(--mark)}
+.backup{display:flex;flex-direction:column;gap:10px}
+.backup textarea{width:100%;min-height:74px;font-family:var(--mono);font-size:16px;line-height:1.3;color:var(--ink);background:var(--wash);border:0;border-bottom:1px solid var(--ink);padding:8px;resize:vertical;word-break:break-all}
 p.note{margin:0;font-size:14px;color:var(--soft);max-width:60ch}
 section{display:flex;flex-direction:column;gap:28px}
 footer{border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direction:column;gap:8px}
@@ -125,7 +140,20 @@ a{color:inherit}
     <p class="note">These standards are made for this sheet. No official 200cc standards exist. The percentages follow the real leaderboards. On a typical track Myth is about 10th place pace, Hero about 50th, Expert about 100th and Intermediate about 500th.</p>
   </section>
 
+  <div class="backup">
+    <div class="bar"><span class="lab">Backup</span>
+      <button type="button" class="txt act" id="bCopy">Copy my times</button>
+      <button type="button" class="txt act" id="bRestore">Restore from a copy</button>
+      <span class="lab" id="bMsg" aria-live="polite"></span></div>
+    <div id="bBox" hidden class="backup">
+      <label class="lab" for="bText" id="bLab">Paste a backup code, then load it</label>
+      <textarea id="bText" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+      <div class="bar"><button type="button" class="txt act" id="bLoad">Load this code</button><button type="button" class="txt" id="bClose">Close</button></div>
+    </div>
+  </div>
+
   <footer>
+    <span class="lab">Times live in this browser only. Copy a backup now and then.</span>
     <span class="lab">Type a time as digits: 112848 becomes 1:12.848</span>
     <span class="lab">10th, 50th and 100th count each player once, by their best ghost</span>
     <span class="lab">Normal allows shortcuts · glitch runs are left out</span>
@@ -133,7 +161,7 @@ a{color:inherit}
 </div>
 
 <script>
-const DATA={"date":"10 Oct 2026","standards":[{"name":"God","pct":1},{"name":"Myth","pct":2.5},{"name":"Titan","pct":4.5},{"name":"Hero","pct":7},{"name":"Expert","pct":10},{"name":"Advanced","pct":15},{"name":"Intermediate","pct":22},{"name":"Beginner","pct":30}],"boards":[{"name":"Luigi Circuit","slot":8,"cat":4,"players":23192,"t":{"1":"0:46.259","10":"0:46.606","50":"0:46.958","100":"0:47.254"},"by":"Besart F.","on":"2023-05-17"},{"name":"Moo Moo Meadows","slot":1,"cat":4,"players":7628,"t":{"1":"0:50.980","10":"0:51.813","50":"0:52.938","100":"0:53.452"},"by":"woah","on":"2024-11-04"},{"name":"Mushroom Gorge","slot":2,"cat":4,"players":669,"t":{"1":"1:14.919","10":"1:19.317","50":"1:22.584","100":"1:25.022"},"by":"sy Elec","on":"2024-05-03"},{"name":"Mushroom Gorge","slot":2,"cat":6,"players":10397,"t":{"1":"1:12.848","10":"1:13.895","50":"1:16.096","100":"1:17.259"},"by":"woah","on":"2024-02-16"},{"name":"Toad's Factory","slot":4,"cat":4,"players":199,"t":{"1":"1:15.028","10":"1:24.079","50":"1:30.306","100":"1:37.425"},"by":"Arthur","on":"2024-03-01"},{"name":"Toad's Factory","slot":4,"cat":6,"players":8524,"t":{"1":"1:15.871","10":"1:17.133","50":"1:20.140","100":"1:21.421"},"by":"Schmancy","on":"2024-05-11"},{"name":"Mario Circuit","slot":0,"cat":4,"players":6971,"t":{"1":"0:53.672","10":"0:54.162","50":"0:54.795","100":"0:55.316"},"by":"Schmancy","on":"2024-05-10"},{"name":"Coconut Mall","slot":5,"cat":4,"players":2762,"t":{"1":"1:03.849","10":"1:07.068","50":"1:09.450","100":"1:10.860"},"by":"Ω Indy","on":"2024-11-04"},{"name":"Coconut Mall","slot":5,"cat":6,"players":6892,"t":{"1":"1:14.621","10":"1:21.111","50":"1:25.745","100":"1:27.591"},"by":"Dυçκ E","on":"2020-01-02"},{"name":"DK Summit","slot":6,"cat":4,"players":7895,"t":{"1":"1:11.436","10":"1:17.159","50":"1:22.416","100":"1:26.254"},"by":"XXXX EEEEE","on":"2025-06-05"},{"name":"Wario's Gold Mine","slot":7,"cat":4,"players":1821,"t":{"1":"1:14.553","10":"1:16.709","50":"1:20.405","100":"1:22.612"},"by":"Schmancy","on":"2023-01-22"},{"name":"Daisy Circuit","slot":9,"cat":4,"players":4093,"t":{"1":"1:01.574","10":"1:02.595","50":"1:04.598","100":"1:05.896"},"by":"woah","on":"2025-01-22"},{"name":"Koopa Cape","slot":15,"cat":4,"players":3201,"t":{"1":"1:36.878","10":"1:39.861","50":"1:45.782","100":"1:48.668"},"by":"CobyAltWii","on":"2025-01-21"},{"name":"Maple Treeway","slot":11,"cat":4,"players":2236,"t":{"1":"1:39.932","10":"1:42.959","50":"1:46.792","100":"1:49.600"},"by":"MrWaffle","on":"2024-01-19"},{"name":"Grumble Volcano","slot":3,"cat":4,"players":1397,"t":{"1":"1:10.679","10":"1:15.139","50":"1:16.615","100":"1:17.809"},"by":"Mystogan","on":"2026-07-18"},{"name":"Grumble Volcano","slot":3,"cat":6,"players":1509,"t":{"1":"1:16.667","10":"1:19.593","50":"1:22.282","100":"1:25.028"},"by":"Mystogan","on":"2026-07-13"},{"name":"Dry Dry Ruins","slot":14,"cat":4,"players":3295,"t":{"1":"1:15.242","10":"1:17.871","50":"1:22.167","100":"1:24.082"},"by":"MrWaffle","on":"2023-07-23"},{"name":"Moonview Highway","slot":10,"cat":4,"players":1943,"t":{"1":"1:09.117","10":"1:10.328","50":"1:12.817","100":"1:14.244"},"by":"woah","on":"2024-11-30"},{"name":"Bowser's Castle","slot":12,"cat":4,"players":471,"t":{"1":"1:30.380","10":"1:42.444","50":"1:59.629","100":"2:10.503"},"by":"αdcGD@sinθ","on":"2025-02-07"},{"name":"Bowser's Castle","slot":12,"cat":6,"players":1785,"t":{"1":"1:39.260","10":"1:42.132","50":"1:49.263","100":"1:55.207"},"by":"woah","on":"2026-09-20"},{"name":"Rainbow Road","slot":13,"cat":4,"players":3482,"t":{"1":"1:44.198","10":"1:47.043","50":"1:53.945","100":"1:57.823"},"by":"Flαg N","on":"2025-09-14"},{"name":"GCN Peach Beach","slot":16,"cat":4,"players":4162,"t":{"1":"0:48.436","10":"0:49.146","50":"0:49.718","100":"0:50.107"},"by":"Kasey","on":"2022-02-13"},{"name":"DS Yoshi Falls","slot":20,"cat":4,"players":6372,"t":{"1":"0:38.932","10":"0:39.295","50":"0:39.969","100":"0:40.469"},"by":"HιahowαreU","on":"2023-02-09"},{"name":"SNES Ghost Valley 2","slot":25,"cat":4,"players":4737,"t":{"1":"0:35.722"}},{"name":"N64 Mario Raceway","slot":26,"cat":4,"players":6119,"t":{"1":"1:08.803"}},{"name":"N64 Sherbet Land","slot":27,"cat":4,"players":1420,"t":{"1":"1:25.165","10":"1:27.347","50":"1:31.699","100":"1:35.881"},"by":"Schmancy","on":"2023-04-21"},{"name":"GBA Shy Guy Beach","slot":31,"cat":4,"players":2741,"t":{"1":"0:54.068","10":"0:55.026","50":"0:55.832","100":"0:56.260"},"by":"Schmancy","on":"2024-02-19"},{"name":"DS Delfino Square","slot":23,"cat":4,"players":3599,"t":{"1":"1:22.434","10":"1:24.010","50":"1:27.729","100":"1:31.650"},"by":"HιahowαreU","on":"2023-02-02"},{"name":"GCN Waluigi Stadium","slot":18,"cat":4,"players":3288,"t":{"1":"1:18.754","10":"1:22.731","50":"1:28.686","100":"1:31.157"},"by":"woah","on":"2024-12-01"},{"name":"DS Desert Hills","slot":21,"cat":4,"players":122,"t":{"1":"1:08.001","10":"1:12.332","50":"1:27.531","100":"1:44.806"},"by":"τας◎SñοοΡ™","on":"2019-05-05"},{"name":"DS Desert Hills","slot":21,"cat":6,"players":2579,"t":{"1":"1:03.698","10":"1:04.795","50":"1:06.373","100":"1:07.757"},"by":"ElecTrick","on":"2026-04-07"},{"name":"GBA Bowser Castle 3","slot":30,"cat":4,"players":1253,"t":{"1":"1:20.850","10":"1:27.224","50":"1:34.375","100":"1:38.647"},"by":"woah","on":"2026-03-30"},{"name":"GBA Bowser Castle 3","slot":30,"cat":6,"players":2016,"t":{"1":"1:32.250","10":"1:34.536","50":"1:37.286","100":"1:40.483"},"by":"woah","on":"2024-10-27"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":4,"players":238,"t":{"1":"1:36.543","10":"1:42.043","50":"1:58.861","100":"2:12.832"},"by":"Flαg A","on":"2023-12-31"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":6,"players":1264,"t":{"1":"1:38.787","10":"1:41.255","50":"1:46.033","100":"1:49.205"},"by":"woah","on":"2025-01-24"},{"name":"GCN Mario Circuit","slot":17,"cat":6,"players":1841,"t":{"1":"1:04.460","10":"1:06.722","50":"1:10.630","100":"1:13.505"},"by":"woah","on":"2024-11-30"},{"name":"SNES Mario Circuit 3","slot":24,"cat":4,"players":3546,"t":{"1":"0:54.327","10":"0:54.981","50":"0:55.885","100":"0:56.299"},"by":"woah","on":"2024-11-16"},{"name":"DS Peach Gardens","slot":22,"cat":4,"players":1529,"t":{"1":"1:21.627","10":"1:23.318","50":"1:25.950","100":"1:28.446"},"by":"Schmancy","on":"2023-03-25"},{"name":"GCN DK Mountain","slot":19,"cat":4,"players":120,"t":{"1":"1:36.584","10":"1:46.738","50":"2:28.290","100":"4:19.746"},"by":"Mγsτοgαη","on":"2024-01-24"},{"name":"GCN DK Mountain","slot":19,"cat":6,"players":2285,"t":{"1":"1:37.859","10":"1:42.738","50":"1:47.113","100":"1:50.666"},"by":"woah","on":"2026-05-07"},{"name":"N64 Bowser's Castle","slot":28,"cat":4,"players":17,"t":{"1":"1:51.314","10":"1:58.959"},"by":"Sergio","on":"2022-12-29"},{"name":"N64 Bowser's Castle","slot":28,"cat":6,"players":3190,"t":{"1":"1:44.959","10":"1:46.639","50":"1:48.913","100":"1:50.274"},"by":"woah","on":"2024-12-12"}]};
+const DATA={"date":"10 Oct 2026","standards":[{"name":"God","pct":1},{"name":"Myth","pct":2.5},{"name":"Titan","pct":4.5},{"name":"Hero","pct":7},{"name":"Expert","pct":10},{"name":"Advanced","pct":15},{"name":"Intermediate","pct":22},{"name":"Beginner","pct":30}],"boards":[{"name":"Luigi Circuit","slot":8,"cat":4,"players":23192,"t":{"1":"0:46.259","10":"0:46.606","50":"0:46.958","100":"0:47.254"},"by":"Besart F.","on":"2023-05-17"},{"name":"Moo Moo Meadows","slot":1,"cat":4,"players":7628,"t":{"1":"0:50.980","10":"0:51.813","50":"0:52.938","100":"0:53.452"},"by":"woah","on":"2024-11-04"},{"name":"Mushroom Gorge","slot":2,"cat":4,"players":669,"t":{"1":"1:14.919","10":"1:19.317","50":"1:22.584","100":"1:25.022"},"by":"sy Elec","on":"2024-05-03"},{"name":"Mushroom Gorge","slot":2,"cat":6,"players":10397,"t":{"1":"1:12.848","10":"1:13.895","50":"1:16.096","100":"1:17.259"},"by":"woah","on":"2024-02-16"},{"name":"Toad's Factory","slot":4,"cat":4,"players":199,"t":{"1":"1:15.028","10":"1:24.079","50":"1:30.306","100":"1:37.425"},"by":"Arthur","on":"2024-03-01"},{"name":"Toad's Factory","slot":4,"cat":6,"players":8524,"t":{"1":"1:15.871","10":"1:17.133","50":"1:20.140","100":"1:21.421"},"by":"Schmancy","on":"2024-05-11"},{"name":"Mario Circuit","slot":0,"cat":4,"players":6971,"t":{"1":"0:53.672","10":"0:54.162","50":"0:54.795","100":"0:55.316"},"by":"Schmancy","on":"2024-05-10"},{"name":"Coconut Mall","slot":5,"cat":4,"players":2762,"t":{"1":"1:03.849","10":"1:07.068","50":"1:09.450","100":"1:10.860"},"by":"Ω Indy","on":"2024-11-04"},{"name":"Coconut Mall","slot":5,"cat":6,"players":6892,"t":{"1":"1:14.621","10":"1:21.111","50":"1:25.745","100":"1:27.591"},"by":"Dυçκ E","on":"2020-01-02"},{"name":"DK Summit","slot":6,"cat":4,"players":7895,"t":{"1":"1:11.436","10":"1:17.159","50":"1:22.416","100":"1:26.254"},"by":"XXXX EEEEE","on":"2025-06-05"},{"name":"Wario's Gold Mine","slot":7,"cat":4,"players":1821,"t":{"1":"1:14.553","10":"1:16.709","50":"1:20.405","100":"1:22.612"},"by":"Schmancy","on":"2023-01-22"},{"name":"Daisy Circuit","slot":9,"cat":4,"players":4093,"t":{"1":"1:01.574","10":"1:02.595","50":"1:04.598","100":"1:05.896"},"by":"woah","on":"2025-01-22"},{"name":"Koopa Cape","slot":15,"cat":4,"players":3201,"t":{"1":"1:36.878","10":"1:39.861","50":"1:45.782","100":"1:48.668"},"by":"CobyAltWii","on":"2025-01-21"},{"name":"Maple Treeway","slot":11,"cat":4,"players":2236,"t":{"1":"1:39.932","10":"1:42.959","50":"1:46.792","100":"1:49.600"},"by":"MrWaffle","on":"2024-01-19"},{"name":"Grumble Volcano","slot":3,"cat":4,"players":1397,"t":{"1":"1:10.679","10":"1:15.139","50":"1:16.615","100":"1:17.809"},"by":"Mystogan","on":"2026-07-18"},{"name":"Grumble Volcano","slot":3,"cat":6,"players":1509,"t":{"1":"1:16.667","10":"1:19.593","50":"1:22.282","100":"1:25.028"},"by":"Mystogan","on":"2026-07-13"},{"name":"Dry Dry Ruins","slot":14,"cat":4,"players":3295,"t":{"1":"1:15.242","10":"1:17.871","50":"1:22.167","100":"1:24.082"},"by":"MrWaffle","on":"2023-07-23"},{"name":"Moonview Highway","slot":10,"cat":4,"players":1943,"t":{"1":"1:09.117","10":"1:10.328","50":"1:12.817","100":"1:14.244"},"by":"woah","on":"2024-11-30"},{"name":"Bowser's Castle","slot":12,"cat":4,"players":471,"t":{"1":"1:30.380","10":"1:42.444","50":"1:59.629","100":"2:10.503"},"by":"αdcGD@sinθ","on":"2025-02-07"},{"name":"Bowser's Castle","slot":12,"cat":6,"players":1785,"t":{"1":"1:39.260","10":"1:42.132","50":"1:49.263","100":"1:55.207"},"by":"woah","on":"2026-09-20"},{"name":"Rainbow Road","slot":13,"cat":4,"players":3482,"t":{"1":"1:44.198","10":"1:47.043","50":"1:53.945","100":"1:57.823"},"by":"Flαg N","on":"2025-09-14"},{"name":"GCN Peach Beach","slot":16,"cat":4,"players":4162,"t":{"1":"0:48.436","10":"0:49.146","50":"0:49.718","100":"0:50.107"},"by":"Kasey","on":"2022-02-13"},{"name":"DS Yoshi Falls","slot":20,"cat":4,"players":6372,"t":{"1":"0:38.932","10":"0:39.295","50":"0:39.969","100":"0:40.469"},"by":"HιahowαreU","on":"2023-02-09"},{"name":"SNES Ghost Valley 2","slot":25,"cat":4,"players":4737,"t":{"1":"0:35.722","10":"0:36.233","50":"0:36.878","100":"0:37.338"},"by":"Schmaltzy","on":"2023-12-07"},{"name":"N64 Mario Raceway","slot":26,"cat":4,"players":6119,"t":{"1":"1:08.803","10":"1:09.794","50":"1:11.257","100":"1:11.903"},"by":"woah","on":"2024-01-10"},{"name":"N64 Sherbet Land","slot":27,"cat":4,"players":1420,"t":{"1":"1:25.165","10":"1:27.347","50":"1:31.699","100":"1:35.881"},"by":"Schmancy","on":"2023-04-21"},{"name":"GBA Shy Guy Beach","slot":31,"cat":4,"players":2741,"t":{"1":"0:54.068","10":"0:55.026","50":"0:55.832","100":"0:56.260"},"by":"Schmancy","on":"2024-02-19"},{"name":"DS Delfino Square","slot":23,"cat":4,"players":3599,"t":{"1":"1:22.434","10":"1:24.010","50":"1:27.729","100":"1:31.650"},"by":"HιahowαreU","on":"2023-02-02"},{"name":"GCN Waluigi Stadium","slot":18,"cat":4,"players":3288,"t":{"1":"1:18.754","10":"1:22.731","50":"1:28.686","100":"1:31.157"},"by":"woah","on":"2024-12-01"},{"name":"DS Desert Hills","slot":21,"cat":4,"players":122,"t":{"1":"1:08.001","10":"1:12.332","50":"1:27.531","100":"1:44.806"},"by":"τας◎SñοοΡ™","on":"2019-05-05"},{"name":"DS Desert Hills","slot":21,"cat":6,"players":2579,"t":{"1":"1:03.698","10":"1:04.795","50":"1:06.373","100":"1:07.757"},"by":"ElecTrick","on":"2026-04-07"},{"name":"GBA Bowser Castle 3","slot":30,"cat":4,"players":1253,"t":{"1":"1:20.850","10":"1:27.224","50":"1:34.375","100":"1:38.647"},"by":"woah","on":"2026-03-30"},{"name":"GBA Bowser Castle 3","slot":30,"cat":6,"players":2016,"t":{"1":"1:32.250","10":"1:34.536","50":"1:37.286","100":"1:40.483"},"by":"woah","on":"2024-10-27"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":4,"players":238,"t":{"1":"1:36.543","10":"1:42.043","50":"1:58.861","100":"2:12.832"},"by":"Flαg A","on":"2023-12-31"},{"name":"N64 DK's Jungle Parkway","slot":29,"cat":6,"players":1264,"t":{"1":"1:38.787","10":"1:41.255","50":"1:46.033","100":"1:49.205"},"by":"woah","on":"2025-01-24"},{"name":"GCN Mario Circuit","slot":17,"cat":6,"players":1841,"t":{"1":"1:04.460","10":"1:06.722","50":"1:10.630","100":"1:13.505"},"by":"woah","on":"2024-11-30"},{"name":"SNES Mario Circuit 3","slot":24,"cat":4,"players":3546,"t":{"1":"0:54.327","10":"0:54.981","50":"0:55.885","100":"0:56.299"},"by":"woah","on":"2024-11-16"},{"name":"DS Peach Gardens","slot":22,"cat":4,"players":1529,"t":{"1":"1:21.627","10":"1:23.318","50":"1:25.950","100":"1:28.446"},"by":"Schmancy","on":"2023-03-25"},{"name":"GCN DK Mountain","slot":19,"cat":4,"players":120,"t":{"1":"1:36.584","10":"1:46.738","50":"2:28.290","100":"4:19.746"},"by":"Mγsτοgαη","on":"2024-01-24"},{"name":"GCN DK Mountain","slot":19,"cat":6,"players":2285,"t":{"1":"1:37.859","10":"1:42.738","50":"1:47.113","100":"1:50.666"},"by":"woah","on":"2026-05-07"},{"name":"N64 Bowser's Castle","slot":28,"cat":4,"players":17,"t":{"1":"1:51.314","10":"1:58.959"},"by":"Sergio","on":"2022-12-29"},{"name":"N64 Bowser's Castle","slot":28,"cat":6,"players":3190,"t":{"1":"1:44.959","10":"1:46.639","50":"1:48.913","100":"1:50.274"},"by":"woah","on":"2024-12-12"}]};
 const CUPS=["Mushroom","Flower","Star","Special","Shell","Banana","Leaf","Lightning"];
 const CATNAME={4:"Normal",6:"No-shortcut"};
 const $=id=>document.getElementById(id);
@@ -158,9 +186,10 @@ function parseTime(raw){
 const TRACKS=[]; (function(){ const by={}; DATA.boards.forEach(b=>{ const k=b.slot; if(!by[k]){ by[k]={slot:b.slot,name:b.name,cats:[]}; TRACKS.push(by[k]); } by[k].cats.push(b); });
   TRACKS.forEach(t=>{ t.def=t.cats.slice().sort((a,b)=>b.players-a.players)[0].cat; }); })();
 
-let state={times:{},cat:{},at:0};
+let state={times:{},cat:{},meta:{},order:"cup",at:0};
 const LS="tt200-v1";
 try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s&&s.times) state=s; }catch(e){}
+state.meta=state.meta||{}; state.cat=state.cat||{}; state.order=state.order||"cup";
 const catOf=t=>{ const c=state.cat[t.slot]; return t.cats.find(b=>String(b.cat)===String(c))||t.cats.find(b=>b.cat===t.def); };
 const key=(t,b)=>t.slot+"_"+b.cat;
 
@@ -168,8 +197,18 @@ function standardFor(b,mine){ const wr=ms(b.t[1]); if(mine==null||wr==null) retu
 function bracket(b,mine){ const r=[[1,"World record pace"],[10,"Inside the top 10"],[50,"Inside the top 50"],[100,"Inside the top 100"]];
   for(const [k,txt] of r){ const v=ms(b.t[k]); if(v!=null&&mine<=v) return txt; } return ms(b.t[100])!=null?"Outside the top 100":""; }
 
+function pctOff(t){ const b=catOf(t), m=state.times[key(t,b)]; return m==null?null:(m/ms(b.t[1])-1)*100; }
 function renderTimes(){
   const root=$("vTimes"); root.textContent="";
+  const bar=document.createElement("div"); bar.className="bar";
+  const bl=document.createElement("span"); bl.className="lab"; bl.textContent="Order"; bar.appendChild(bl);
+  [["cup","By cup"],["weak","Weakest first"]].forEach(([k,txt])=>{ const bt=document.createElement("button"); bt.type="button"; bt.className="txt"; bt.textContent=txt; bt.setAttribute("aria-pressed",String(state.order===k)); bt.onclick=()=>{ state.order=k; persist(); renderTimes(); }; bar.appendChild(bt); });
+  root.appendChild(bar);
+  if(state.order==="weak"){
+    const done=TRACKS.filter(t=>pctOff(t)!=null).sort((a,b)=>pctOff(b)-pctOff(a)), todo=TRACKS.filter(t=>pctOff(t)==null);
+    [["Most time to find",done],["Not timed yet",todo]].forEach(([title,list])=>{ if(!list.length) return; const sec=document.createElement("div"); sec.className="cup"; const l=document.createElement("div"); l.className="lab"; l.textContent=title; sec.appendChild(l); list.forEach(t=>sec.appendChild(trackEl(t))); root.appendChild(sec); });
+    return;
+  }
   CUPS.forEach((cup,ci)=>{
     const sec=document.createElement("div"); sec.className="cup";
     const l=document.createElement("div"); l.className="lab"; l.textContent=cup+" Cup"; sec.appendChild(l);
@@ -193,7 +232,7 @@ function trackEl(t){
   const inp=document.createElement("input"); inp.id="in"+t.slot; inp.type="text"; inp.inputMode="numeric"; inp.autocomplete="off"; inp.placeholder="0:00.000"; inp.value=mine!=null?fmt(mine):"";
   inp.onfocus=()=>inp.select();
   inp.onchange=()=>{ const v=parseTime(inp.value); if(Number.isNaN(v)){ inp.classList.add("bad"); return; } inp.classList.remove("bad");
-    if(v==null) delete state.times[key(t,b)]; else state.times[key(t,b)]=v; persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); };
+    const k=key(t,b), was=state.times[k]; if(v==null){ delete state.times[k]; delete state.meta[k]; } else if(v!==was){ state.times[k]=v; state.meta[k]={at:Date.now(),prev:was==null?null:was}; } persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); };
   inp.onkeydown=e=>{ if(e.key==="Enter") inp.blur(); };
   me.appendChild(lb); me.appendChild(inp); top.appendChild(me); el.appendChild(top);
 
@@ -213,7 +252,11 @@ function trackEl(t){
     const pct=((mine/wr-1)*100); const br=bracket(b,mine);
     info.textContent=(pct>=0?"+":"−")+Math.abs(pct).toFixed(2)+"% off WR"+(br?" · "+br:""); vd.appendChild(info);
     const nxt=nextUp(b,mine,s); if(nxt){ const n2=document.createElement("span"); n2.className="lab"; n2.textContent=nxt; vd.appendChild(n2); }
-    el.appendChild(vd); }
+    el.appendChild(vd);
+    const mt=state.meta[key(t,b)]; if(mt&&mt.at){ const hs=document.createElement("div"); hs.className="hist";
+      hs.appendChild(document.createTextNode("Set "+new Date(mt.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})));
+      if(mt.prev!=null){ hs.appendChild(document.createTextNode(" · was "+fmt(mt.prev)+" · ")); const d=document.createElement("b"); d.textContent=gapf(mine-mt.prev); if(mine>mt.prev) d.style.color="var(--slow)"; hs.appendChild(d); }
+      el.appendChild(hs); } }
   return el;
 }
 function nextUp(b,mine,s){ const wr=ms(b.t[1]); const i=s?DATA.standards.indexOf(s):DATA.standards.length; if(i<=0) return ""; const up=DATA.standards[i-1]; const target=Math.floor(wr*(1+up.pct/100)); return up.name+" needs "+fmt(target)+" ("+gapf(target-mine)+")"; }
@@ -244,17 +287,29 @@ let dbDoc=null, timer=null;
 function note(t){ $("save").textContent=t; }
 function persist(){ state.at=Date.now(); try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){}
   if(!dbDoc){ note("Saved on this device"); return; }
-  note("Saving"); clearTimeout(timer); timer=setTimeout(()=>{ dbDoc.set({times:state.times,cat:state.cat,at:state.at}).then(()=>note("Saved"),()=>note("Saved on this device")); },700); }
+  note("Saving"); clearTimeout(timer); timer=setTimeout(()=>{ dbDoc.set({times:state.times,cat:state.cat,meta:state.meta,order:state.order,at:state.at}).then(()=>note("Saved"),()=>note("Saved on this device")); },700); }
 async function connect(){
   try{ if(!window.claude||!window.claude.use) return; const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]); if(!db||!user) return;
     const id=await user.id(); if(!id) return; const ref=db.collection("data/users/"+id).doc("sheet"); const snap=await ref.get(); dbDoc=ref;
-    if(snap.exists){ const d=snap.data(); if(d&&d.times&&(d.at||0)>=(state.at||0)){ state={times:Object.assign({},d.times),cat:Object.assign({},d.cat||{}),at:d.at||0}; try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} renderTimes(); renderStd(); tally(); } else if(Object.keys(state.times).length){ persist(); } }
+    if(snap.exists){ const d=snap.data(); if(d&&d.times&&(d.at||0)>=(state.at||0)){ state={times:Object.assign({},d.times),cat:Object.assign({},d.cat||{}),meta:Object.assign({},d.meta||{}),order:d.order||"cup",at:d.at||0}; try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} renderTimes(); renderStd(); tally(); } else if(Object.keys(state.times).length){ persist(); } }
     else if(Object.keys(state.times).length){ persist(); }
     note(Object.keys(state.times).length?"Saved":"");
   }catch(e){}
 }
 
 function show(which){ const t=which==="std"; $("vTimes").hidden=t; $("vStd").hidden=!t; $("tabTimes").setAttribute("aria-selected",String(!t)); $("tabStd").setAttribute("aria-selected",String(t)); }
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))), dec=s=>JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
+function openBox(text,label){ $("bBox").hidden=false; $("bLab").textContent=label; $("bText").value=text; if(text){ $("bText").focus(); $("bText").select(); } }
+$("bCopy").onclick=()=>{ const code="TT200:"+enc({times:state.times,cat:state.cat,meta:state.meta});
+  const done=()=>{ $("bMsg").textContent="Copied. Paste it somewhere safe."; }, fail=()=>{ openBox(code,"Copy this code and keep it somewhere safe"); $("bLoad").hidden=true; };
+  try{ navigator.clipboard.writeText(code).then(done,fail); }catch(e){ fail(); } };
+$("bRestore").onclick=()=>{ $("bLoad").hidden=false; $("bMsg").textContent=""; openBox("","Paste a backup code, then load it"); $("bText").focus(); };
+$("bClose").onclick=()=>{ $("bBox").hidden=true; };
+$("bLoad").onclick=()=>{ try{ const raw=$("bText").value.trim().replace(/^TT200:/,""); const o=dec(raw); if(!o||typeof o.times!=="object") throw 0;
+    const times={}; Object.keys(o.times).forEach(k=>{ const v=+o.times[k]; if(/^\d+_\d+$/.test(k)&&v>0&&v<6e5) times[k]=Math.round(v); });
+    state.times=times; state.cat=o.cat||{}; state.meta=o.meta||{}; persist(); renderTimes(); renderStd(); tally(); $("bBox").hidden=true; $("bMsg").textContent="Loaded "+Object.keys(times).length+" times.";
+  }catch(e){ $("bMsg").textContent="That code did not read. Check you pasted all of it."; } };
+if("serviceWorker" in navigator && location.protocol==="https:" && /github\.io$/.test(location.hostname)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 $("tabTimes").onclick=()=>show("times"); $("tabStd").onclick=()=>show("std");
 $("snap").textContent="Records as of "+DATA.date;
 renderTimes(); renderStd(); tally(); connect();
