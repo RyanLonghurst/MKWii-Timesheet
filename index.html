@@ -18,11 +18,8 @@
 <title>200cc Timesheet</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600&family=Martian+Mono:wght@400;600&display=swap">
 <style>
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-body{margin:0}
-[hidden]{display:none!important}
 /* Layout: one narrow white column, lots of air, tiny mono labels, square edges throughout.
-   Each track is a ruled block: name left, your time right, four reference times beneath. */
+   Times is the list of 32 tracks. Track is the page for one of them. Add a run sits fixed at the bottom. */
 :root{
   --paper:#ffffff; --ink:#0d0f14; --soft:#6b7080; --rule:#dfe1e7; --wash:#f3f4f7;
   --mark:#1b3bff; --mark-ink:#ffffff; --slow:#b3261e;
@@ -35,79 +32,105 @@ body{margin:0}
 :root[data-theme="dark"]{ --paper:#0c0d11; --ink:#f1f2f5; --soft:#8c91a1; --rule:#272a33; --wash:#15171d; --mark:#7d92ff; --mark-ink:#0c0d11; --slow:#ff8a80; color-scheme:dark }
 
 *{box-sizing:border-box;border-radius:0}
-html{-webkit-text-size-adjust:100%;touch-action:manipulation}
-body{background:var(--paper);color:var(--ink);font-family:var(--display);font-size:16px;line-height:1.35;padding-inline:20px;padding-block:28px 96px}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;touch-action:manipulation;padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);font-size:16px;line-height:1.35;padding-inline:20px;padding-block:28px calc(120px + env(safe-area-inset-bottom,0px))}
 .wrap{max-width:560px;margin-inline:auto;display:flex;flex-direction:column;gap:36px}
 .lab{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--soft)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible,.trk:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
 
 header{display:flex;flex-direction:column;gap:18px}
-h1{font-size:44px;line-height:.95;font-weight:600;letter-spacing:-.035em;margin:0;text-wrap:balance}
+h1{font-size:44px;line-height:.95;font-weight:600;letter-spacing:-.035em;margin:0}
 h1 span{color:var(--mark)}
 .meta{display:flex;flex-wrap:wrap;gap:6px 18px}
-
 .tally{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
 .tally div{padding:12px 0;display:flex;flex-direction:column;gap:6px}
 .tally div+div{padding-left:14px;border-left:1px solid var(--rule)}
 .tally b{font-family:var(--mono);font-weight:400;font-size:17px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
 
 nav{display:flex;gap:22px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--paper);padding-block:12px;z-index:5;border-bottom:1px solid var(--rule)}
-nav button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:4px 0;color:var(--soft);cursor:pointer;border-bottom:2px solid transparent}
+nav button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:4px 0;color:var(--soft);cursor:pointer;border-bottom:2px solid transparent;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--mark)}
-nav .save{margin-left:auto;align-self:center}
-button:focus-visible,input:focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:28px}
+
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.txt{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:4px 0;color:var(--soft);cursor:pointer;border-bottom:1px solid transparent}
+.txt[aria-pressed="true"],.txt.act{color:var(--ink);border-bottom-color:var(--ink)}
+.txt.warn{color:var(--slow);border-bottom-color:var(--slow)}
 
 .cup{display:flex;flex-direction:column}
 .cup>.lab{padding-bottom:8px;border-bottom:1px solid var(--ink)}
-.trk{padding:16px 0 18px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:12px}
+.trk{padding:16px 0 18px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.trk:active{background:var(--wash)}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
-.name{min-width:0;display:flex;flex-direction:column;gap:7px}
+.name{min-width:0;display:flex;flex-direction:column;gap:6px}
 .name h3{margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
-.cats{display:flex;gap:12px}
-.cats button{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:2px 0;color:var(--soft);cursor:pointer;border-bottom:1px solid transparent}
-.cats button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
-.mine{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
-.mine input{width:122px;font-family:var(--mono);font-size:16px;font-variant-numeric:tabular-nums;letter-spacing:-.03em;text-align:right;color:var(--ink);background:var(--wash);border:0;border-bottom:1px solid var(--ink);padding:8px 8px 7px}
-.mine input::placeholder{color:var(--soft);opacity:.6}
-.mine input.bad{border-bottom-color:var(--slow);color:var(--slow)}
-.refs{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.pb{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none}
+.pb .num{font-size:17px}
+.pb .num.none{color:var(--soft)}
+.refs{display:grid;grid-template-columns:repeat(4,1fr)}
 .refs div{display:flex;flex-direction:column;gap:5px;padding-right:6px}
 .refs .num{font-size:12px}
 .refs .gap{font-family:var(--mono);font-size:9.5px;color:var(--soft);font-variant-numeric:tabular-nums}
-.refs .beat .num{color:var(--mark)}
-.refs .beat .gap{color:var(--mark)}
-.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;min-height:18px}
+.refs .beat .num,.refs .beat .gap{color:var(--mark)}
+.verdict{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;background:var(--mark);color:var(--mark-ink)}
 .tag.none{background:none;color:var(--soft);border:1px solid var(--rule)}
 
-.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--ink)}
-table{border-collapse:collapse;font-family:var(--mono);font-size:10.5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
-th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--rule);font-weight:400}
+/* track page */
+.hero{display:flex;flex-direction:column;gap:10px}
+.hero h2{margin:0;font-size:34px;line-height:1;font-weight:600;letter-spacing:-.03em}
+.big{font-family:var(--mono);font-size:34px;letter-spacing:-.05em;font-variant-numeric:tabular-nums;line-height:1}
+.big.none{color:var(--soft)}
+.flash{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:10px 12px;background:var(--mark);color:var(--mark-ink)}
+.flash.plain{background:var(--wash);color:var(--ink)}
+.block{display:flex;flex-direction:column;gap:12px}
+.block>.lab:first-child{padding-bottom:8px;border-bottom:1px solid var(--ink)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11.5px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+th,td{padding:9px 8px 9px 0;text-align:right;border-bottom:1px solid var(--rule);font-weight:400;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
 thead th{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
-tbody th{position:sticky;left:0;background:var(--paper);font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:-.01em;padding-right:14px;max-width:132px;white-space:normal;line-height:1.15}
-tbody th small{display:block;font-family:var(--mono);font-weight:400;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);margin-top:3px}
-td.hit{color:var(--mark)}
-td.best{background:var(--mark);color:var(--mark-ink)}
-th:first-child{padding-left:0}
-.key{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:baseline}
-.key dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
-.key dd{margin:0;font-family:var(--mono);font-size:10.5px;color:var(--soft)}
-.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.txt{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;padding:2px 0;color:var(--soft);cursor:pointer;border-bottom:1px solid transparent}
-.txt[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
-.txt.act{color:var(--ink);border-bottom-color:var(--ink)}
-.hist{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--soft);font-variant-numeric:tabular-nums}
-.hist b{font-weight:400;color:var(--mark)}
+tr.sum td{border-bottom:0;padding-top:12px}
+td.hit{color:var(--mark)} td.slow{color:var(--slow)} td.dim{color:var(--soft)}
+tr.got td:first-child{color:var(--mark)}
+tr.here td{background:var(--mark);color:var(--mark-ink)} tr.here td:first-child{padding-left:8px;color:var(--mark-ink)}
+p.note{margin:0;font-size:14px;color:var(--soft);max-width:60ch}
+.runs{display:flex;flex-direction:column}
+.run{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:11px 0;border-bottom:1px solid var(--rule);align-items:baseline}
+.run .laps{font-family:var(--mono);font-size:10px;color:var(--soft);font-variant-numeric:tabular-nums}
+.run .tot{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.run .tot.best{color:var(--mark)}
+
+/* fixed add button */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--paper);border-top:1px solid var(--rule);padding:12px 20px calc(12px + env(safe-area-inset-bottom,0px))}
+.dock button,.go{display:block;width:100%;max-width:560px;margin-inline:auto;height:54px;background:var(--mark);color:var(--mark-ink);border:0;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.dock button:active,.go:active{opacity:.85}
+.go[disabled]{background:var(--wash);color:var(--soft);cursor:default}
+
+/* add a run sheet */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--paper);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(28px + env(safe-area-inset-bottom,0px))}
+.sheet form{max-width:560px;margin-inline:auto;display:flex;flex-direction:column;gap:26px}
+.sheet .head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--ink);padding-bottom:10px}
+.sheet h2{margin:0;font-size:28px;font-weight:600;letter-spacing:-.03em}
+.field{display:flex;flex-direction:column;gap:8px}
+select,.field input{width:100%;font-family:var(--mono);font-size:16px;color:var(--ink);background:var(--wash);border:0;border-bottom:1px solid var(--ink);padding:12px 10px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;-webkit-appearance:none;appearance:none}
+select{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:-.01em;background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:34px}
+.field input::placeholder{color:var(--soft);opacity:.6}
+.field input.bad{border-bottom-color:var(--slow);color:var(--slow)}
+.laps3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.laps3 input{text-align:center;padding-inline:4px}
+.live{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 0}
+.live .big{font-size:28px}
+.say{font-family:var(--mono);font-size:11px;letter-spacing:.03em;min-height:16px}
+.say.good{color:var(--mark)} .say.bad{color:var(--slow)}
+
 .backup{display:flex;flex-direction:column;gap:10px}
 .backup textarea{width:100%;min-height:74px;font-family:var(--mono);font-size:16px;line-height:1.3;color:var(--ink);background:var(--wash);border:0;border-bottom:1px solid var(--ink);padding:8px;resize:vertical;word-break:break-all}
-p.note{margin:0;font-size:14px;color:var(--soft);max-width:60ch}
-section{display:flex;flex-direction:column;gap:28px}
 footer{border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direction:column;gap:8px}
-a{color:inherit}
-@media (max-width:360px){ h1{font-size:38px} .mine input{width:108px} }
-@media (prefers-reduced-motion:no-preference){ nav button,.cats button{transition:color .12s} }
+@media (max-width:360px){ h1{font-size:38px} .hero h2{font-size:28px} .big{font-size:30px} }
 </style>
-
 </head>
 <body>
 <div class="wrap">
@@ -127,22 +150,15 @@ a{color:inherit}
 
   <nav role="tablist">
     <button role="tab" id="tabTimes" aria-selected="true" aria-controls="vTimes">Times</button>
-    <button role="tab" id="tabStd" aria-selected="false" aria-controls="vStd">Standards</button>
-    <span class="lab save" id="save" aria-live="polite"></span>
+    <button role="tab" id="tabTrack" aria-selected="false" aria-controls="vTrack">Track</button>
   </nav>
 
   <section id="vTimes" role="tabpanel" aria-labelledby="tabTimes"></section>
-
-  <section id="vStd" role="tabpanel" aria-labelledby="tabStd" hidden>
-    <p class="note">Target time for each standard on every track. A standard is the world record plus a fixed percentage, so the bar is equally hard everywhere. Cells turn blue once your time beats them.</p>
-    <dl class="key" id="key"></dl>
-    <div class="scroll"><table id="stdTable"></table></div>
-    <p class="note">These standards are made for this sheet. No official 200cc standards exist. The percentages follow the real leaderboards. On a typical track Myth is about 10th place pace, Hero about 50th, Expert about 100th and Intermediate about 500th.</p>
-  </section>
+  <section id="vTrack" role="tabpanel" aria-labelledby="tabTrack" hidden></section>
 
   <div class="backup">
     <div class="bar"><span class="lab">Backup</span>
-      <button type="button" class="txt act" id="bCopy">Copy my times</button>
+      <button type="button" class="txt act" id="bCopy">Copy my runs</button>
       <button type="button" class="txt act" id="bRestore">Restore from a copy</button>
       <span class="lab" id="bMsg" aria-live="polite"></span></div>
     <div id="bBox" hidden class="backup">
@@ -153,11 +169,39 @@ a{color:inherit}
   </div>
 
   <footer>
-    <span class="lab">Times live in this browser only. Copy a backup now and then.</span>
-    <span class="lab">Type a time as digits: 112848 becomes 1:12.848</span>
+    <span class="lab">Runs live in this browser only. Copy a backup now and then.</span>
     <span class="lab">10th, 50th and 100th count each player once, by their best ghost</span>
     <span class="lab">Normal allows shortcuts · glitch runs are left out</span>
+    <span class="lab">Standards are made for this sheet: world record plus a set percentage</span>
   </footer>
+</div>
+
+<div class="dock"><button type="button" id="addBtn">Add a run</button></div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="shTitle">
+  <form id="addForm" novalidate>
+    <div class="head"><h2 id="shTitle">Add a run</h2><button type="button" class="txt act" id="shClose">Cancel</button></div>
+    <div class="field">
+      <label class="lab" for="aTrack">Track</label>
+      <select id="aTrack"></select>
+      <div class="bar" id="aCats"></div>
+    </div>
+    <div class="field">
+      <span class="lab">Lap splits · type digits, 24283 becomes 0:24.283</span>
+      <div class="laps3">
+        <input id="aL1" type="text" inputmode="numeric" autocomplete="off" placeholder="Lap 1" aria-label="Lap 1">
+        <input id="aL2" type="text" inputmode="numeric" autocomplete="off" placeholder="Lap 2" aria-label="Lap 2">
+        <input id="aL3" type="text" inputmode="numeric" autocomplete="off" placeholder="Lap 3" aria-label="Lap 3">
+      </div>
+    </div>
+    <div class="field">
+      <label class="lab" for="aTot">Or the finish time alone, if you have no splits</label>
+      <input id="aTot" type="text" inputmode="numeric" autocomplete="off" placeholder="0:00.000">
+    </div>
+    <div class="live"><span class="lab">Finish time</span><span class="big none" id="aSum">–</span></div>
+    <div class="say" id="aSay" aria-live="polite"></div>
+    <button type="submit" class="go" id="aSave" disabled>Save run</button>
+  </form>
 </div>
 
 <script>
@@ -165,14 +209,13 @@ const DATA={"date":"10 Oct 2026","standards":[{"name":"God","pct":1},{"name":"My
 const CUPS=["Mushroom","Flower","Star","Special","Shell","Banana","Leaf","Lightning"];
 const CATNAME={4:"Normal",6:"No-shortcut"};
 const $=id=>document.getElementById(id);
-
-// stop pinch and double-tap zoom on phones
-(function(){const m=document.querySelector('meta[name=viewport]');if(m)m.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
-  ['gesturestart','gesturechange'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault(),{passive:false}));})();
+const E=(tag,cls,txt)=>{ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; };
+['gesturestart','gesturechange'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault(),{passive:false}));
 
 const ms=s=>{ if(!s) return null; const m=/^(\d+):(\d\d)\.(\d{3})$/.exec(s); return m? (+m[1])*60000+(+m[2])*1000+(+m[3]) : null; };
 const fmt=v=>{ if(v==null) return "–"; v=Math.round(v); const m=Math.floor(v/60000), s=Math.floor(v%60000/1000), x=v%1000; return m+":"+String(s).padStart(2,"0")+"."+String(x).padStart(3,"0"); };
 const gapf=d=>(d<0?"−":"+")+(Math.abs(d)/1000).toFixed(3);
+const dayf=t=>new Date(t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
 function parseTime(raw){
   raw=(raw||"").trim(); if(!raw) return null;
   let m;
@@ -182,137 +225,190 @@ function parseTime(raw){
   return NaN;
 }
 
-// tracks: one entry per slot, with its non-glitch categories
-const TRACKS=[]; (function(){ const by={}; DATA.boards.forEach(b=>{ const k=b.slot; if(!by[k]){ by[k]={slot:b.slot,name:b.name,cats:[]}; TRACKS.push(by[k]); } by[k].cats.push(b); });
+// one entry per track, with its non-glitch categories
+const TRACKS=[]; (function(){ const by={}; DATA.boards.forEach(b=>{ if(!by[b.slot]){ by[b.slot]={slot:b.slot,name:b.name,cats:[]}; TRACKS.push(by[b.slot]); } by[b.slot].cats.push(b); });
   TRACKS.forEach(t=>{ t.def=t.cats.slice().sort((a,b)=>b.players-a.players)[0].cat; }); })();
+const trackBy=slot=>TRACKS.find(t=>String(t.slot)===String(slot));
 
-let state={times:{},cat:{},meta:{},order:"cup",at:0};
+// ---- saved state: every run is kept; the record is the fastest of them
+let state={runs:{},cat:{},order:"cup",sel:null,at:0};
 const LS="tt200-v1";
-try{ const s=JSON.parse(localStorage.getItem(LS)||"null"); if(s&&s.times) state=s; }catch(e){}
-state.meta=state.meta||{}; state.cat=state.cat||{}; state.order=state.order||"cup";
+function adopt(s){ if(!s||typeof s!=="object") return;
+  const runs={};
+  if(s.runs&&typeof s.runs==="object") Object.keys(s.runs).forEach(k=>{ if(!/^\d+_\d+$/.test(k)||!Array.isArray(s.runs[k])) return; const list=s.runs[k].map(cleanRun).filter(Boolean); if(list.length) runs[k]=list; });
+  if(s.times&&typeof s.times==="object") Object.keys(s.times).forEach(k=>{ const v=+s.times[k]; if(!/^\d+_\d+$/.test(k)||!(v>0&&v<6e5)) return; const at=(s.meta&&s.meta[k]&&s.meta[k].at)||s.at||Date.now(); const list=runs[k]||(runs[k]=[]); if(!list.some(r=>r.total===Math.round(v))) list.push({laps:null,total:Math.round(v),at}); });
+  state={runs,cat:s.cat||{},order:s.order==="weak"?"weak":"cup",sel:s.sel==null?null:s.sel,at:s.at||0}; }
+function cleanRun(r){ if(!r) return null; let laps=null; if(Array.isArray(r.laps)&&r.laps.length===3&&r.laps.every(x=>+x>0&&+x<3e5)) laps=r.laps.map(x=>Math.round(+x));
+  const total=laps?laps[0]+laps[1]+laps[2]:Math.round(+r.total); if(!(total>0&&total<6e5)) return null; return {laps,total,at:+r.at||Date.now()}; }
+try{ adopt(JSON.parse(localStorage.getItem(LS)||"null")); }catch(e){}
+function persist(){ state.at=Date.now(); try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} }
+
 const catOf=t=>{ const c=state.cat[t.slot]; return t.cats.find(b=>String(b.cat)===String(c))||t.cats.find(b=>b.cat===t.def); };
 const key=(t,b)=>t.slot+"_"+b.cat;
-
+const runsOf=k=>state.runs[k]||[];
+const pbRun=k=>runsOf(k).reduce((a,r)=>(!a||r.total<a.total)?r:a,null);
+const pbOf=k=>{ const r=pbRun(k); return r?r.total:null; };
+function bestLaps(k){ const out=[null,null,null]; runsOf(k).forEach(r=>{ if(r.laps) r.laps.forEach((v,i)=>{ if(out[i]==null||v<out[i]) out[i]=v; }); }); return out; }
 function standardFor(b,mine){ const wr=ms(b.t[1]); if(mine==null||wr==null) return null; for(const s of DATA.standards){ if(mine<=wr*(1+s.pct/100)) return s; } return null; }
+const target=(b,s)=>Math.floor(ms(b.t[1])*(1+s.pct/100));
 function bracket(b,mine){ const r=[[1,"World record pace"],[10,"Inside the top 10"],[50,"Inside the top 50"],[100,"Inside the top 100"]];
   for(const [k,txt] of r){ const v=ms(b.t[k]); if(v!=null&&mine<=v) return txt; } return ms(b.t[100])!=null?"Outside the top 100":""; }
+function nextUp(b,mine){ const s=standardFor(b,mine), i=s?DATA.standards.indexOf(s):DATA.standards.length; if(i<=0) return ""; const up=DATA.standards[i-1], tg=target(b,up); return up.name+" needs "+fmt(tg)+" ("+gapf(tg-mine)+")"; }
+const pctOff=t=>{ const b=catOf(t), m=pbOf(key(t,b)); return m==null?null:(m/ms(b.t[1])-1)*100; };
 
-function pctOff(t){ const b=catOf(t), m=state.times[key(t,b)]; return m==null?null:(m/ms(b.t[1])-1)*100; }
+function catButtons(t,b,onPick){ const cs=E("div","bar"); t.cats.forEach(c=>{ const bt=E("button","txt",CATNAME[c.cat]||"Normal"); bt.type="button"; bt.setAttribute("aria-pressed",String(c===b)); bt.onclick=ev=>{ ev.stopPropagation(); onPick(c); }; cs.appendChild(bt); }); return cs; }
+function refsEl(b,mine){ const refs=E("div","refs");
+  [[1,"WR"],[10,"10th"],[50,"50th"],[100,"100th"]].forEach(([k,lbl])=>{ const d=E("div"), v=ms(b.t[k]); d.appendChild(E("span","lab",lbl)); d.appendChild(E("span","num",fmt(v)));
+    if(mine!=null&&v!=null){ d.appendChild(E("span","gap",gapf(mine-v))); if(mine<=v) d.className="beat"; } refs.appendChild(d); }); return refs; }
+function verdictEl(b,mine,withNext){ const vd=E("div","verdict"), s=standardFor(b,mine); vd.appendChild(E("span","tag"+(s?"":" none"),s?s.name:"No standard yet"));
+  const pct=(mine/ms(b.t[1])-1)*100, br=bracket(b,mine); vd.appendChild(E("span","lab",(pct>=0?"+":"−")+Math.abs(pct).toFixed(2)+"% off WR"+(br?" · "+br:"")));
+  if(withNext){ const n=nextUp(b,mine); if(n) vd.appendChild(E("span","lab",n)); } return vd; }
+
+// ---- Times: the list
 function renderTimes(){
   const root=$("vTimes"); root.textContent="";
-  const bar=document.createElement("div"); bar.className="bar";
-  const bl=document.createElement("span"); bl.className="lab"; bl.textContent="Order"; bar.appendChild(bl);
-  [["cup","By cup"],["weak","Weakest first"]].forEach(([k,txt])=>{ const bt=document.createElement("button"); bt.type="button"; bt.className="txt"; bt.textContent=txt; bt.setAttribute("aria-pressed",String(state.order===k)); bt.onclick=()=>{ state.order=k; persist(); renderTimes(); }; bar.appendChild(bt); });
+  const bar=E("div","bar"); bar.appendChild(E("span","lab","Order"));
+  [["cup","By cup"],["weak","Weakest first"]].forEach(([k,txt])=>{ const bt=E("button","txt",txt); bt.type="button"; bt.setAttribute("aria-pressed",String(state.order===k)); bt.onclick=()=>{ state.order=k; persist(); renderTimes(); }; bar.appendChild(bt); });
   root.appendChild(bar);
-  if(state.order==="weak"){
-    const done=TRACKS.filter(t=>pctOff(t)!=null).sort((a,b)=>pctOff(b)-pctOff(a)), todo=TRACKS.filter(t=>pctOff(t)==null);
-    [["Most time to find",done],["Not timed yet",todo]].forEach(([title,list])=>{ if(!list.length) return; const sec=document.createElement("div"); sec.className="cup"; const l=document.createElement("div"); l.className="lab"; l.textContent=title; sec.appendChild(l); list.forEach(t=>sec.appendChild(trackEl(t))); root.appendChild(sec); });
-    return;
-  }
-  CUPS.forEach((cup,ci)=>{
-    const sec=document.createElement("div"); sec.className="cup";
-    const l=document.createElement("div"); l.className="lab"; l.textContent=cup+" Cup"; sec.appendChild(l);
-    TRACKS.slice(ci*4,ci*4+4).forEach(t=>sec.appendChild(trackEl(t)));
-    root.appendChild(sec);
-  });
+  const group=(title,list)=>{ if(!list.length) return; const sec=E("div","cup"); sec.appendChild(E("div","lab",title)); list.forEach(t=>sec.appendChild(rowEl(t))); root.appendChild(sec); };
+  if(state.order==="weak"){ group("Most time to find",TRACKS.filter(t=>pctOff(t)!=null).sort((a,b)=>pctOff(b)-pctOff(a))); group("Not timed yet",TRACKS.filter(t=>pctOff(t)==null)); }
+  else CUPS.forEach((cup,ci)=>group(cup+" Cup",TRACKS.slice(ci*4,ci*4+4)));
 }
-function trackEl(t){
-  const el=document.createElement("div"); el.className="trk"; el.dataset.slot=t.slot;
-  const b=catOf(t), mine=state.times[key(t,b)];
-  const top=document.createElement("div"); top.className="top";
-  const nm=document.createElement("div"); nm.className="name";
-  const h=document.createElement("h3"); h.textContent=t.name; nm.appendChild(h);
-  if(t.cats.length>1){ const cs=document.createElement("div"); cs.className="cats";
-    t.cats.forEach(c=>{ const bt=document.createElement("button"); bt.type="button"; bt.textContent=CATNAME[c.cat]||"Normal"; bt.setAttribute("aria-pressed",String(c===b));
-      bt.onclick=()=>{ state.cat[t.slot]=c.cat; persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); }; cs.appendChild(bt); });
-    nm.appendChild(cs); }
+function rowEl(t){
+  const b=catOf(t), k=key(t,b), mine=pbOf(k);
+  const el=E("div","trk"); el.tabIndex=0; el.setAttribute("role","button"); el.setAttribute("aria-label","Open "+t.name);
+  const open=()=>{ state.sel=t.slot; persist(); show("track"); window.scrollTo(0,0); };
+  el.onclick=open; el.onkeydown=e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+  const top=E("div","top"), nm=E("div","name"); nm.appendChild(E("h3",null,t.name));
+  if(t.cats.length>1) nm.appendChild(catButtons(t,b,c=>{ state.cat[t.slot]=c.cat; persist(); renderAll(); }));
   top.appendChild(nm);
-  const me=document.createElement("div"); me.className="mine";
-  const lb=document.createElement("label"); lb.className="lab"; lb.textContent="Your time"; lb.htmlFor="in"+t.slot;
-  const inp=document.createElement("input"); inp.id="in"+t.slot; inp.type="text"; inp.inputMode="numeric"; inp.autocomplete="off"; inp.placeholder="0:00.000"; inp.value=mine!=null?fmt(mine):"";
-  inp.onfocus=()=>inp.select();
-  inp.onchange=()=>{ const v=parseTime(inp.value); if(Number.isNaN(v)){ inp.classList.add("bad"); return; } inp.classList.remove("bad");
-    const k=key(t,b), was=state.times[k]; if(v==null){ delete state.times[k]; delete state.meta[k]; } else if(v!==was){ state.times[k]=v; state.meta[k]={at:Date.now(),prev:was==null?null:was}; } persist(); el.replaceWith(trackEl(t)); renderStd(); tally(); };
-  inp.onkeydown=e=>{ if(e.key==="Enter") inp.blur(); };
-  me.appendChild(lb); me.appendChild(inp); top.appendChild(me); el.appendChild(top);
-
-  const refs=document.createElement("div"); refs.className="refs";
-  [[1,"WR"],[10,"10th"],[50,"50th"],[100,"100th"]].forEach(([k,lbl])=>{
-    const d=document.createElement("div"); const v=ms(b.t[k]);
-    const a=document.createElement("span"); a.className="lab"; a.textContent=lbl;
-    const n=document.createElement("span"); n.className="num"; n.textContent=fmt(v);
-    d.appendChild(a); d.appendChild(n);
-    if(mine!=null&&v!=null){ const g=document.createElement("span"); g.className="gap"; g.textContent=gapf(mine-v); d.appendChild(g); if(mine<=v) d.className="beat"; }
-    refs.appendChild(d); });
-  el.appendChild(refs);
-
-  if(mine!=null){ const vd=document.createElement("div"); vd.className="verdict";
-    const s=standardFor(b,mine); const tg=document.createElement("span"); tg.className="tag"+(s?"":" none"); tg.textContent=s?s.name:"No standard yet"; vd.appendChild(tg);
-    const wr=ms(b.t[1]); const info=document.createElement("span"); info.className="lab";
-    const pct=((mine/wr-1)*100); const br=bracket(b,mine);
-    info.textContent=(pct>=0?"+":"−")+Math.abs(pct).toFixed(2)+"% off WR"+(br?" · "+br:""); vd.appendChild(info);
-    const nxt=nextUp(b,mine,s); if(nxt){ const n2=document.createElement("span"); n2.className="lab"; n2.textContent=nxt; vd.appendChild(n2); }
-    el.appendChild(vd);
-    const mt=state.meta[key(t,b)]; if(mt&&mt.at){ const hs=document.createElement("div"); hs.className="hist";
-      hs.appendChild(document.createTextNode("Set "+new Date(mt.at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})));
-      if(mt.prev!=null){ hs.appendChild(document.createTextNode(" · was "+fmt(mt.prev)+" · ")); const d=document.createElement("b"); d.textContent=gapf(mine-mt.prev); if(mine>mt.prev) d.style.color="var(--slow)"; hs.appendChild(d); }
-      el.appendChild(hs); } }
+  const pb=E("div","pb"); pb.appendChild(E("span","lab",mine!=null?"Your record":"No run yet")); pb.appendChild(E("span","num"+(mine==null?" none":""),fmt(mine))); top.appendChild(pb);
+  el.appendChild(top); el.appendChild(refsEl(b,mine)); if(mine!=null) el.appendChild(verdictEl(b,mine,false));
   return el;
 }
-function nextUp(b,mine,s){ const wr=ms(b.t[1]); const i=s?DATA.standards.indexOf(s):DATA.standards.length; if(i<=0) return ""; const up=DATA.standards[i-1]; const target=Math.floor(wr*(1+up.pct/100)); return up.name+" needs "+fmt(target)+" ("+gapf(target-mine)+")"; }
 
-function renderStd(){
-  const k=$("key"); k.textContent=""; DATA.standards.forEach(s=>{ const dt=document.createElement("dt"); dt.textContent=s.name; const dd=document.createElement("dd"); dd.textContent="WR + "+s.pct+"%"; k.appendChild(dt); k.appendChild(dd); });
-  const tb=$("stdTable"); tb.textContent="";
-  const hd=tb.createTHead().insertRow(); const c0=document.createElement("th"); c0.textContent="Track"; hd.appendChild(c0);
-  ["Yours","WR"].concat(DATA.standards.map(s=>s.name)).forEach(n=>{ const th=document.createElement("th"); th.textContent=n; hd.appendChild(th); });
-  const body=tb.createTBody();
-  TRACKS.forEach(t=>{ const b=catOf(t), mine=state.times[key(t,b)], wr=ms(b.t[1]); const r=body.insertRow();
-    const th=document.createElement("th"); th.scope="row"; th.textContent=t.name; if(t.cats.length>1){ const sm=document.createElement("small"); sm.textContent=CATNAME[b.cat]||"Normal"; th.appendChild(sm);} r.appendChild(th);
-    const y=r.insertCell(); y.textContent=mine!=null?fmt(mine):"–";
-    const w=r.insertCell(); w.textContent=fmt(wr); if(mine!=null&&mine<=wr) w.className="hit";
-    const got=standardFor(b,mine);
-    DATA.standards.forEach(s=>{ const c=r.insertCell(); const v=Math.floor(wr*(1+s.pct/100)); c.textContent=fmt(v); if(mine!=null&&mine<=v) c.className=(s===got)?"best":"hit"; });
-  });
-}
-function tally(){
-  let n=0,sum=0,pc=0;
-  TRACKS.forEach(t=>{ const b=catOf(t), m=state.times[key(t,b)]; if(m!=null){ n++; sum+=m; pc+=(m/ms(b.t[1])-1)*100; } });
-  $("tTimed").textContent=n+"/"+TRACKS.length; $("tAvg").textContent=n?"+"+(pc/n).toFixed(2)+"%":"–";
-  $("tSum").textContent=n===TRACKS.length?fmt(sum):(n?fmt(sum)+"*":"–");
+// ---- Track: one track in full
+let flash=null;
+function renderTrack(){
+  const root=$("vTrack"); root.textContent="";
+  const t=trackBy(state.sel);
+  $("tabTrack").textContent=t?t.name:"Track";
+  if(!t){ root.appendChild(E("p","note","Tap any track in Times to open its page. You will see your record, lap splits, best possible time, standards and every run you have logged.")); return; }
+  const b=catOf(t), k=key(t,b), pr=pbRun(k), mine=pr?pr.total:null, runs=runsOf(k), wr=ms(b.t[1]);
+  if(flash&&flash.k===k){ root.appendChild(E("div","flash"+(flash.good?"":" plain"),flash.text)); }
+  flash=null;
+
+  const hero=E("div","hero"); hero.appendChild(E("span","lab",CUPS[Math.floor(TRACKS.indexOf(t)/4)]+" Cup")); hero.appendChild(E("h2",null,t.name));
+  if(t.cats.length>1) hero.appendChild(catButtons(t,b,c=>{ state.cat[t.slot]=c.cat; persist(); renderAll(); }));
+  root.appendChild(hero);
+
+  const rec=E("div","block"); rec.appendChild(E("span","lab","Your record"+(pr?" · set "+dayf(pr.at):"")));
+  rec.appendChild(E("span","big"+(mine==null?" none":""),fmt(mine)));
+  if(mine!=null) rec.appendChild(verdictEl(b,mine,true)); else rec.appendChild(E("p","note","No run logged on this track yet. Use Add a run."));
+  rec.appendChild(refsEl(b,mine));
+  if(b.by) rec.appendChild(E("span","lab","World record by "+b.by+(b.on?" · "+dayf(b.on+"T12:00:00"):"")));
+  root.appendChild(rec);
+
+  // best splits
+  const bl=bestLaps(k), have=bl.every(v=>v!=null), sob=have?bl[0]+bl[1]+bl[2]:null;
+  const sp=E("div","block"); sp.appendChild(E("span","lab","Best splits"));
+  if(!have){ sp.appendChild(E("p","note","Log a run with lap splits and this shows your best lap 1, 2 and 3 from any run added together: the time you could do if it all came together.")); }
+  else{
+    const tb=E("table"), hd=tb.createTHead().insertRow(); ["Lap","Record run","Best ever","To find"].forEach(h=>hd.appendChild(E("th",null,h)));
+    const body=tb.createTBody();
+    [0,1,2].forEach(i=>{ const r=body.insertRow(); r.insertCell().textContent="Lap "+(i+1); const pl=pr&&pr.laps?pr.laps[i]:null;
+      r.insertCell().textContent=pl!=null?fmt(pl):"–"; const c=r.insertCell(); c.textContent=fmt(bl[i]); c.className="hit";
+      const d=r.insertCell(); if(pl!=null){ const lost=pl-bl[i]; d.textContent=lost>0?gapf(-lost):"best"; d.className=lost>0?"slow":"dim"; } else { d.textContent="–"; d.className="dim"; } });
+    const r=body.insertRow(); r.className="sum"; r.insertCell().textContent="Total"; r.insertCell().textContent=fmt(mine); const c=r.insertCell(); c.textContent=fmt(sob); c.className="hit";
+    const d=r.insertCell(); d.textContent=sob<mine?gapf(sob-mine):"–"; d.className=sob<mine?"slow":"dim";
+    sp.appendChild(tb);
+    const vs=E("div","verdict"), s2=standardFor(b,sob); vs.appendChild(E("span","lab","Best possible "+fmt(sob))); vs.appendChild(E("span","tag"+(s2?"":" none"),s2?s2.name:"No standard"));
+    const br=bracket(b,sob), pct=(sob/wr-1)*100; vs.appendChild(E("span","lab",(pct>=0?"+":"−")+Math.abs(pct).toFixed(2)+"% off WR"+(br?" · "+br:""))); sp.appendChild(vs);
+  }
+  root.appendChild(sp);
+
+  // standards for this track
+  const st=E("div","block"); st.appendChild(E("span","lab","Standards on this track"));
+  const tb=E("table"), hd=tb.createTHead().insertRow(); ["Standard","Time","You","Best possible"].forEach(h=>hd.appendChild(E("th",null,h)));
+  const body=tb.createTBody(), got=standardFor(b,mine);
+  DATA.standards.forEach(s=>{ const tg=target(b,s), r=body.insertRow(); if(s===got) r.className="here"; else if(mine!=null&&mine<=tg) r.className="got";
+    r.insertCell().textContent=s.name; r.insertCell().textContent=fmt(tg);
+    const a=r.insertCell(); a.textContent=mine!=null?gapf(mine-tg):"–"; if(mine!=null&&s!==got) a.className=mine<=tg?"hit":"dim";
+    const c=r.insertCell(); c.textContent=sob!=null?gapf(sob-tg):"–"; if(sob!=null&&s!==got) c.className=sob<=tg?"hit":"dim"; });
+  st.appendChild(tb); st.appendChild(E("p","note","A minus means you are already under that time. Each standard is the world record plus a set percentage, from 1% for God to 30% for Beginner."));
+  root.appendChild(st);
+
+  // every run
+  const hs=E("div","block"); hs.appendChild(E("span","lab","Runs logged · "+runs.length));
+  if(!runs.length) hs.appendChild(E("p","note","Nothing here yet."));
+  else{ const list=E("div","runs"); runs.slice().sort((a,b)=>b.at-a.at).forEach(r=>{ const row=E("div","run");
+      const left=E("div"); left.appendChild(E("div","lab",dayf(r.at))); left.appendChild(E("div","laps",r.laps?r.laps.map(fmt).join("  "):"no splits")); row.appendChild(left);
+      const right=E("div"); right.appendChild(E("div","tot"+(r===pr?" best":""),fmt(r.total))); right.appendChild(E("div","lab",r===pr?"Record":gapf(r.total-mine))); right.style.textAlign="right"; row.appendChild(right);
+      const rm=E("button","txt","Remove"); rm.type="button"; rm.onclick=()=>{ if(rm.dataset.sure){ const arr=state.runs[k]; arr.splice(arr.indexOf(r),1); if(!arr.length) delete state.runs[k]; persist(); renderAll(); } else { rm.dataset.sure="1"; rm.textContent="Tap again to remove"; rm.className="txt warn"; } };
+      row.appendChild(rm); list.appendChild(row); }); hs.appendChild(list); }
+  root.appendChild(hs);
 }
 
-// saving: this device straight away, your account when available
-let dbDoc=null, timer=null;
-function note(t){ $("save").textContent=t; }
-function persist(){ state.at=Date.now(); try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){}
-  if(!dbDoc){ note("Saved on this device"); return; }
-  note("Saving"); clearTimeout(timer); timer=setTimeout(()=>{ dbDoc.set({times:state.times,cat:state.cat,meta:state.meta,order:state.order,at:state.at}).then(()=>note("Saved"),()=>note("Saved on this device")); },700); }
-async function connect(){
-  try{ if(!window.claude||!window.claude.use) return; const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]); if(!db||!user) return;
-    const id=await user.id(); if(!id) return; const ref=db.collection("data/users/"+id).doc("sheet"); const snap=await ref.get(); dbDoc=ref;
-    if(snap.exists){ const d=snap.data(); if(d&&d.times&&(d.at||0)>=(state.at||0)){ state={times:Object.assign({},d.times),cat:Object.assign({},d.cat||{}),meta:Object.assign({},d.meta||{}),order:d.order||"cup",at:d.at||0}; try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} renderTimes(); renderStd(); tally(); } else if(Object.keys(state.times).length){ persist(); } }
-    else if(Object.keys(state.times).length){ persist(); }
-    note(Object.keys(state.times).length?"Saved":"");
-  }catch(e){}
-}
+function tally(){ let n=0,sum=0,pc=0; TRACKS.forEach(t=>{ const b=catOf(t), m=pbOf(key(t,b)); if(m!=null){ n++; sum+=m; pc+=(m/ms(b.t[1])-1)*100; } });
+  $("tTimed").textContent=n+"/"+TRACKS.length; $("tAvg").textContent=n?"+"+(pc/n).toFixed(2)+"%":"–"; $("tSum").textContent=n===TRACKS.length?fmt(sum):(n?fmt(sum)+"*":"–"); }
+function renderAll(){ renderTimes(); renderTrack(); tally(); }
+let view="times";
+function show(which){ view=which; const t=which==="track"; $("vTimes").hidden=t; $("vTrack").hidden=!t; $("tabTimes").setAttribute("aria-selected",String(!t)); $("tabTrack").setAttribute("aria-selected",String(t)); renderTrack(); }
+$("tabTimes").onclick=()=>show("times"); $("tabTrack").onclick=()=>show("track");
 
-function show(which){ const t=which==="std"; $("vTimes").hidden=t; $("vStd").hidden=!t; $("tabTimes").setAttribute("aria-selected",String(!t)); $("tabStd").setAttribute("aria-selected",String(t)); }
+// ---- Add a run
+const sel=$("aTrack"); CUPS.forEach((cup,ci)=>{ const g=document.createElement("optgroup"); g.label=cup+" Cup"; TRACKS.slice(ci*4,ci*4+4).forEach(t=>{ const o=document.createElement("option"); o.value=t.slot; o.textContent=t.name; g.appendChild(o); }); sel.appendChild(g); });
+let addCat=null; const lapIn=[$("aL1"),$("aL2"),$("aL3")];
+function addTrack(){ return trackBy(sel.value); }
+function addBoard(){ const t=addTrack(); return t.cats.find(c=>c.cat===addCat)||catOf(t); }
+function drawAddCats(){ const t=addTrack(), b=addBoard(), box=$("aCats"); box.textContent=""; if(t.cats.length>1){ const cb=catButtons(t,b,c=>{ addCat=c.cat; drawAddCats(); readAdd(); }); while(cb.firstChild) box.appendChild(cb.firstChild); } }
+function readAdd(){
+  const laps=lapIn.map(i=>parseTime(i.value)); const typed=lapIn.some(i=>i.value.trim()!=="");
+  lapIn.forEach((i,n)=>i.classList.toggle("bad",Number.isNaN(laps[n])));
+  const tot=$("aTot"); tot.disabled=typed; if(typed) tot.value="";
+  const tv=parseTime(tot.value); tot.classList.toggle("bad",Number.isNaN(tv));
+  let run=null;
+  if(typed){ if(laps.every(v=>v!=null&&!Number.isNaN(v)&&v>0)) run={laps,total:laps[0]+laps[1]+laps[2]}; }
+  else if(tv!=null&&!Number.isNaN(tv)&&tv>0) run={laps:null,total:tv};
+  const sum=$("aSum"), say=$("aSay"); sum.textContent=run?fmt(run.total):"–"; sum.className="big"+(run?"":" none"); say.className="say"; say.textContent="";
+  $("aSave").disabled=!run;
+  if(run){ const t=addTrack(), b=addBoard(), old=pbOf(key(t,b));
+    if(old==null){ say.textContent="First run on this track. It becomes your record."; say.className="say good"; }
+    else if(run.total<old){ say.textContent="New record, "+((old-run.total)/1000).toFixed(3)+" faster than "+fmt(old)+"."; say.className="say good"; }
+    else if(run.total===old){ say.textContent="Ties your record of "+fmt(old)+"."; }
+    else { say.textContent=((run.total-old)/1000).toFixed(3)+" off your record of "+fmt(old)+". Saved to the run log, the record stays."; }
+  } else if(typed&&laps.some(v=>v==null)) say.textContent="Enter all three laps.";
+  return run;
+}
+function openAdd(){ const t=trackBy(view==="track"?state.sel:null)||trackBy(state.sel)||TRACKS[0]; sel.value=t.slot; addCat=catOf(t).cat; lapIn.forEach(i=>{ i.value=""; i.classList.remove("bad"); }); $("aTot").value=""; drawAddCats(); readAdd(); $("sheet").hidden=false; document.body.style.overflow="hidden"; setTimeout(()=>lapIn[0].focus(),50); }
+function closeAdd(){ $("sheet").hidden=true; document.body.style.overflow=""; }
+$("addBtn").onclick=openAdd; $("shClose").onclick=closeAdd;
+sel.onchange=()=>{ addCat=catOf(addTrack()).cat; drawAddCats(); readAdd(); };
+lapIn.concat([$("aTot")]).forEach((i,n,all)=>{ i.oninput=readAdd; i.onblur=()=>{ const v=parseTime(i.value); if(v!=null&&!Number.isNaN(v)) i.value=fmt(v); }; i.onkeydown=e=>{ if(e.key==="Enter"&&n<2){ e.preventDefault(); all[n+1].focus(); } }; });
+$("addForm").onsubmit=e=>{ e.preventDefault(); const run=readAdd(); if(!run) return; const t=addTrack(), b=addBoard(), k=key(t,b), old=pbOf(k);
+  state.cat[t.slot]=b.cat; (state.runs[k]||(state.runs[k]=[])).push({laps:run.laps,total:run.total,at:Date.now()}); state.sel=t.slot; persist();
+  const s=standardFor(b,run.total), was=standardFor(b,old);
+  if(old==null) flash={k,good:true,text:"First run saved. "+fmt(run.total)+" is your record"+(s?" and earns "+s.name:"")+"."};
+  else if(run.total<old) flash={k,good:true,text:"New record. "+fmt(run.total)+" beats "+fmt(old)+" by "+((old-run.total)/1000).toFixed(3)+(s&&s!==was?". You are now "+s.name:"")+"."};
+  else flash={k,good:false,text:"Run saved. "+fmt(run.total)+" is "+((run.total-old)/1000).toFixed(3)+" off your record."};
+  closeAdd(); renderTimes(); tally(); show("track"); window.scrollTo(0,0); };
+
+// ---- backup
 const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))), dec=s=>JSON.parse(decodeURIComponent(escape(atob(s.trim()))));
 function openBox(text,label){ $("bBox").hidden=false; $("bLab").textContent=label; $("bText").value=text; if(text){ $("bText").focus(); $("bText").select(); } }
-$("bCopy").onclick=()=>{ const code="TT200:"+enc({times:state.times,cat:state.cat,meta:state.meta});
+$("bCopy").onclick=()=>{ const code="TT200:"+enc({runs:state.runs,cat:state.cat});
   const done=()=>{ $("bMsg").textContent="Copied. Paste it somewhere safe."; }, fail=()=>{ openBox(code,"Copy this code and keep it somewhere safe"); $("bLoad").hidden=true; };
   try{ navigator.clipboard.writeText(code).then(done,fail); }catch(e){ fail(); } };
 $("bRestore").onclick=()=>{ $("bLoad").hidden=false; $("bMsg").textContent=""; openBox("","Paste a backup code, then load it"); $("bText").focus(); };
 $("bClose").onclick=()=>{ $("bBox").hidden=true; };
-$("bLoad").onclick=()=>{ try{ const raw=$("bText").value.trim().replace(/^TT200:/,""); const o=dec(raw); if(!o||typeof o.times!=="object") throw 0;
-    const times={}; Object.keys(o.times).forEach(k=>{ const v=+o.times[k]; if(/^\d+_\d+$/.test(k)&&v>0&&v<6e5) times[k]=Math.round(v); });
-    state.times=times; state.cat=o.cat||{}; state.meta=o.meta||{}; persist(); renderTimes(); renderStd(); tally(); $("bBox").hidden=true; $("bMsg").textContent="Loaded "+Object.keys(times).length+" times.";
+$("bLoad").onclick=()=>{ try{ const o=dec($("bText").value.trim().replace(/^TT200:/,"")); if(!o||(typeof o.runs!=="object"&&typeof o.times!=="object")) throw 0;
+    const keep={order:state.order,sel:state.sel}; adopt(o); state.order=keep.order; state.sel=keep.sel; persist(); renderAll(); $("bBox").hidden=true;
+    $("bMsg").textContent="Loaded "+Object.values(state.runs).reduce((n,a)=>n+a.length,0)+" runs.";
   }catch(e){ $("bMsg").textContent="That code did not read. Check you pasted all of it."; } };
+
 if("serviceWorker" in navigator && location.protocol==="https:" && /github\.io$/.test(location.hostname)){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
-$("tabTimes").onclick=()=>show("times"); $("tabStd").onclick=()=>show("std");
 $("snap").textContent="Records as of "+DATA.date;
-renderTimes(); renderStd(); tally(); connect();
+renderAll();
 </script>
 </body>
 </html>
