@@ -129,6 +129,7 @@ select{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:
 .scan .lab{color:var(--ink)}
 .scan button{flex:none;background:var(--ink);color:var(--paper);border:0;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:10px 12px;cursor:pointer}
 .scan button[disabled]{opacity:.5}
+.scanpic{display:block;width:100%;max-height:200px;object-fit:contain;background:var(--wash)}
 .watch{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);text-decoration:none;color:var(--ink)}
 .watch b{font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:-.01em}
 .watch span.go2{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mark)}
@@ -198,6 +199,7 @@ footer{border-top:1px solid var(--rule);padding-top:14px;display:flex;flex-direc
       <button type="button" id="scanBtn">Scan</button>
       <input type="file" id="scanFile" accept="image/*" capture="environment" hidden>
     </div>
+    <img id="scanPic" class="scanpic" alt="Your photo of the results screen" hidden>
     <div class="field">
       <span class="lab">Lap splits · type digits, 24283 becomes 0:24.283</span>
       <div class="laps3">
@@ -404,7 +406,7 @@ function readAdd(){
   } else if(typed&&laps.some(v=>v==null)) say.textContent="Enter all three laps.";
   return run;
 }
-function openAdd(){ const t=trackBy(view==="track"?state.sel:null)||trackBy(state.sel)||TRACKS[0]; sel.value=t.slot; addCat=catOf(t).cat; lapIn.forEach(i=>{ i.value=""; i.classList.remove("bad"); }); $("aTot").value=""; $("scanMsg").textContent="Take a photo of the results screen to fill the laps"; drawAddCats(); readAdd(); $("sheet").hidden=false; document.body.style.overflow="hidden"; setTimeout(()=>lapIn[0].focus(),50); }
+function openAdd(){ const t=trackBy(view==="track"?state.sel:null)||trackBy(state.sel)||TRACKS[0]; sel.value=t.slot; addCat=catOf(t).cat; lapIn.forEach(i=>{ i.value=""; i.classList.remove("bad"); }); $("aTot").value=""; $("scanMsg").textContent="Take a photo of the results screen to fill the laps"; $("scanPic").hidden=true; $("scanPic").removeAttribute("src"); drawAddCats(); readAdd(); $("sheet").hidden=false; document.body.style.overflow="hidden"; setTimeout(()=>lapIn[0].focus(),50); }
 function closeAdd(){ $("sheet").hidden=true; document.body.style.overflow=""; }
 $("addBtn").onclick=openAdd; $("shClose").onclick=closeAdd;
 sel.onchange=()=>{ addCat=catOf(addTrack()).cat; drawAddCats(); readAdd(); };
@@ -420,36 +422,55 @@ $("addForm").onsubmit=e=>{ e.preventDefault(); const run=readAdd(); if(!run) ret
 // ---- link to the record video: a YouTube search for the track and the record time
 function videoLink(t,b){ const q="CTGP 200cc WR "+t.name+" "+fmt(ms(b.t[1])); return "https://www.youtube.com/results?search_query="+encodeURIComponent(q); }
 
-// ---- scan the results screen
-function timesIn(text){
-  const s=text.replace(/[Oo]/g,"0").replace(/[’‘`´′]/g,"'").replace(/[”“″]/g,'"').replace(/''/g,'"');
-  const out=[]; const re=/(?<!\d)(\d)\s*['.,:;]\s*(\d{2})\s*["'.,:;]?\s*(\d{3})(?!\d)|(?<!\d)([01])(\d{2})(\d{3})(?!\d)/g; let m;
-  while((m=re.exec(s))){ const mi=+(m[1]??m[4]), se=+(m[2]??m[5]), x=+(m[3]??m[6]); if(se<60){ const v=mi*60000+se*1000+x; if(v>=5000&&v<240000) out.push(v); } }
-  return out;
+// ---- scan the results screen (PaddleOCR, loaded the first time Scan is used)
+function cleanCh(c){ return ({O:"0",D:"0",Q:"0",I:"1",L:"1","|":"1",Z:"2",S:"5",B:"8",G:"6",T:"7"})[c]||c; }
+function readLine(raw){
+  let s=String(raw).toUpperCase().replace(/\s+/g,"");
+  let lap=null; const m=/L?A?P([123])/.exec(s); if(m&&/LAP|AP|LP/.test(s.slice(0,m.index+3))){ lap=+m[1]; s=s.slice(m.index+m[0].length); }
+  s=s.split("").map(cleanCh).join("");
+  let ss,mmm,min="0"; const sep=s.search(/[.,·][^.,·]*$/);
+  if(sep>=2&&s.length-sep>=4){ ss=s.slice(sep-2,sep); mmm=s.slice(sep+1,sep+4); const before=s.slice(0,sep-2).replace(/\D/g,""); if(lap==null&&before.length) min=before.slice(-1); }
+  else { const tail=s.replace(/[^0-9@?#*%&$]/g,"").slice(-5); if(tail.length<5) return null; ss=tail.slice(0,2); mmm=tail.slice(2); }
+  const txt=(ss+mmm).replace(/\D/g,"?"); if((txt.match(/\?/g)||[]).length>2) return null;
+  return {lap,txt,min:+min||0};
 }
-function pickLaps(c){ const n=c.length;
-  for(let t=0;t<n;t++) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){ if(i===t||j===t||k===t) continue; if(Math.abs(c[i]+c[j]+c[k]-c[t])<=2) return {laps:[c[i],c[j],c[k]],sure:true}; }
-  if(n===3) return {laps:c.slice(),sure:false};
-  if(n>=4) return {laps:c.slice(-3),sure:false};
-  return null; }
-let ocr=null;
-function loadOcr(){ if(window.Tesseract) return Promise.resolve(); if(ocr) return ocr;
-  ocr=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; s.onload=ok; s.onerror=()=>{ ocr=null; no(); }; document.head.appendChild(s); }); return ocr; }
-function canvases(img){ const W=Math.min(1600,img.naturalWidth), H=Math.round(img.naturalHeight*W/img.naturalWidth);
-  const make=mode=>{ const c=document.createElement("canvas"); c.width=W; c.height=H; const x=c.getContext("2d"); x.drawImage(img,0,0,W,H); const d=x.getImageData(0,0,W,H), p=d.data;
-    for(let i=0;i<p.length;i+=4){ const l=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]; const v=mode==="bright"?(l>185?0:255):mode==="grey"?255-l:l; p[i]=p[i+1]=p[i+2]=v; } x.putImageData(d,0,0); return c; };
-  return [make("bright"),make("grey"),make("plain")]; }
+function toLap(txt){ return /^\d{5}$/.test(txt)&&+txt.slice(0,2)<60? (+txt.slice(0,2))*1000+(+txt.slice(2)) : null; }
+function pickFromLines(lines){
+  const rd=lines.map(l=>({y:l.y,r:readLine(l.text)})).filter(x=>x.r).sort((a,b)=>a.y-b.y);
+  let laps=rd.filter(x=>x.r.lap!=null); const totals=rd.filter(x=>x.r.lap==null);
+  if(laps.length<3){ laps=rd.slice(0,0); const cands=rd.filter(x=>x.r.lap!=null||toLap(x.r.txt)!=null); laps=cands.slice(-3); }
+  const byLap=[null,null,null]; laps.forEach((x,i)=>{ const n=x.r.lap!=null?x.r.lap-1:i; if(n>=0&&n<3&&!byLap[n]) byLap[n]=x.r.txt; });
+  let total=null; totals.forEach(x=>{ const v=toLap(x.r.txt); if(v!=null&&x.r.min>=1) total=x.r.min*60000+v; });
+  return {laps:byLap,total};
+}
+let ocrInst=null, ocrLoad=null;
+function getOcr(){ if(ocrInst) return Promise.resolve(ocrInst); if(ocrLoad) return ocrLoad;
+  ocrLoad=new Promise((ok,no)=>{ const s=document.createElement("script"); s.src="ocr/paddle.min.js"; s.onload=ok; s.onerror=no; document.head.appendChild(s); })
+    .then(()=>{ ort.env.wasm.wasmPaths=new URL("ocr/",location.href).href; ort.env.wasm.numThreads=1; return PaddleOcr.create({models:{detectionPath:"ocr/det.onnx",recognitionPath:"ocr/rec.onnx",dictionaryPath:"ocr/keys.txt"}}); })
+    .then(o=>{ ocrInst=o; return o; }).catch(e=>{ ocrLoad=null; throw e; });
+  return ocrLoad; }
+async function shrink(file){ const url=URL.createObjectURL(file); try{ const img=new Image(); img.src=url; await img.decode(); const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)); const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height); const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.92)); return URL.createObjectURL(b); } finally { URL.revokeObjectURL(url); } }
 $("scanBtn").onclick=()=>$("scanFile").click();
 $("scanFile").onchange=async()=>{ const f=$("scanFile").files[0]; $("scanFile").value=""; if(!f) return;
-  const msg=$("scanMsg"), btn=$("scanBtn"); btn.disabled=true; msg.textContent="Loading the reader. First time takes a few seconds.";
-  try{ await loadOcr(); const url=URL.createObjectURL(f); const img=await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=url; });
-    const worker=await Tesseract.createWorker("eng"); await worker.setParameters({tessedit_char_whitelist:"0123456789'\":.,",tessedit_pageseg_mode:"11"});
-    let best=null; const cs=canvases(img);
-    for(let n=0;n<cs.length;n++){ msg.textContent="Reading the photo ("+(n+1)+" of "+cs.length+")"; const r=await worker.recognize(cs[n]); const pick=pickLaps(timesIn(r.data.text)); if(pick&&(!best||(pick.sure&&!best.sure))) best=pick; if(best&&best.sure) break; }
-    await worker.terminate(); URL.revokeObjectURL(url);
-    if(!best){ msg.textContent="Could not read the times. Try a straighter, closer photo, or type them."; }
-    else { lapIn.forEach((i,n)=>{ i.value=fmt(best.laps[n]); }); readAdd(); msg.textContent=best.sure?"Laps found and they add up to the finish time. Check them, then save.":"Laps filled in, but the finish time was not confirmed. Check each one before saving."; }
-  }catch(e){ msg.textContent="The reader did not load. You need signal the first time. Type the laps for now."; }
+  const msg=$("scanMsg"), btn=$("scanBtn"), pic=$("scanPic"); btn.disabled=true;
+  let u=null;
+  try{ u=await shrink(f); pic.src=u; pic.hidden=false;
+    msg.textContent=ocrInst?"Reading the photo":"Loading the reader. The first scan downloads about 40 MB, then it works offline.";
+    const o=await getOcr(); msg.textContent="Reading the photo";
+    const r=await o.detect(u); const lines=(r.texts||r).map(x=>({text:x.text,y:x.box?x.box[0][1]:0}));
+    const got=pickFromLines(lines);
+    if(got.laps.every(x=>!x)){ msg.textContent="Could not find the lap times. Get closer so the three LAP lines fill the photo, or type them."; }
+    else {
+      let firstBad=null;
+      got.laps.forEach((txt,n)=>{ const i=lapIn[n]; if(!txt){ i.value=""; if(firstBad==null) firstBad=n; return; } const v=toLap(txt); i.value=v!=null?fmt(v):"0:"+txt.slice(0,2)+"."+txt.slice(2); if(v==null&&firstBad==null) firstBad=n; });
+      readAdd(); got.laps.forEach((txt,n)=>{ if(!txt||toLap(txt)==null) lapIn[n].classList.add("bad"); });
+      const vals=got.laps.map(t=>t?toLap(t):null), all=vals.every(v=>v!=null), sum=all?vals[0]+vals[1]+vals[2]:null;
+      if(firstBad!=null){ msg.textContent="Lap "+(firstBad+1)+" was not clear. Check it against the photo and fix the marked digits."; lapIn[firstBad].focus(); }
+      else if(got.total!=null&&Math.abs(sum-got.total)<=2){ msg.textContent="All three laps read and they add up to the finish time. Save when ready."; }
+      else if(got.total!=null){ msg.textContent="Laps read, but they add up to "+fmt(sum)+" and the screen shows "+fmt(got.total)+". Check them against the photo."; }
+      else { msg.textContent="Laps read. Check them against the photo, then save."; }
+    }
+  }catch(e){ msg.textContent=navigator.onLine?"The reader failed to start. Try again, or type the laps.":"The reader needs signal the first time. Type the laps for now."; }
   btn.disabled=false; };
 
 // ---- backup
